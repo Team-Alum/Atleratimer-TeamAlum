@@ -46,6 +46,24 @@ npm run build
 npm run preview
 ```
 
+### 4. Optional — Music Search & Cloud Playlists
+Music playback (YouTube IFrame API) works with no configuration. Search and
+playlist cloud sync need two one-time steps:
+
+1. **YouTube search proxy** — set a server-side key (never exposed to the browser):
+   ```bash
+   # Local development (serves /api/* like Vercel does)
+   npx vercel dev
+   # Production
+   vercel env add YOUTUBE_API_KEY production
+   ```
+   Without a key, search returns a friendly "isn't set up yet" message; playback
+   of any track/playlist you already have still works.
+
+2. **Playlist table** — run `supabase/migrations/0002_playlists.sql` in the
+   Supabase SQL Editor. Signed-in users get RLS-protected cloud playlists;
+   guests stay on localStorage.
+
 ---
 
 ## 🛠 Technology Stack

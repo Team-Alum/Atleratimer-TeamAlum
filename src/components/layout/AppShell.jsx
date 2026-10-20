@@ -8,6 +8,7 @@ import TimerCustomizationsView from '../views/TimerCustomizationsView';
 import SettingsView from '../views/SettingsView';
 import SessionHistoryModal from '../stats/SessionHistoryModal';
 import Watermark from './Watermark';
+import MusicBar from '../../music/MusicBar';
 import { Menu, Hourglass } from 'lucide-react';
 
 export default function AppShell() {
@@ -72,6 +73,9 @@ export default function AppShell() {
         isOpen={showHistoryModal}
         onClose={() => setShowHistoryModal(false)}
       />
+
+      {/* Persistent music bar */}
+      <MusicBar />
     </div>
   );
 }

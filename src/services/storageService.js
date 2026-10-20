@@ -34,6 +34,15 @@ function getDefaultInitialData() {
       autoStartFocus: false,
       dailyGoalMinutes: 100,
     },
+    musicSettings: {
+      volume: 0.8,
+      rememberLastPlaylist: true,
+      musicOnSessionStart: false,
+    },
+    ambientSettings: {
+      scene: 'starry-sky', // 'rainy-night' | 'night-drive' | 'starry-sky' | 'cozy-room' | 'minimal'
+      enabled: true,
+    },
     timerState: {
       mode: 'focus', // 'focus', 'short_break', 'long_break'
       sessionTitle: 'Focus session',
@@ -47,6 +56,18 @@ function getDefaultInitialData() {
     history: [],
     dailyActivity: {},
   };
+}
+
+// Fill in keys added after a version bump without discarding user data
+function mergeMissingDefaults(parsed, defaults) {
+  const merged = { ...defaults, ...parsed };
+  for (const key of Object.keys(defaults)) {
+    const def = defaults[key];
+    if (def && typeof def === 'object' && !Array.isArray(def)) {
+      merged[key] = { ...def, ...(parsed[key] && typeof parsed[key] === 'object' ? parsed[key] : {}) };
+    }
+  }
+  return merged;
 }
 
 export const storageService = {
@@ -69,19 +90,22 @@ export const storageService = {
         return defaults;
       }
 
+      // Older v2 data may predate music/ambient settings — fill the gaps in
+      const merged = mergeMissingDefaults(parsed, getDefaultInitialData());
+
       // Handle running timer if tab was closed or reloaded
-      if (parsed.timerState && parsed.timerState.isRunning && parsed.timerState.expectedEndAt) {
+      if (merged.timerState && merged.timerState.isRunning && merged.timerState.expectedEndAt) {
         const now = Date.now();
-        if (now >= parsed.timerState.expectedEndAt) {
+        if (now >= merged.timerState.expectedEndAt) {
           // Timer finished while page was closed
-          parsed.timerState.isRunning = false;
-          parsed.timerState.remainingSeconds = 0;
+          merged.timerState.isRunning = false;
+          merged.timerState.remainingSeconds = 0;
         } else {
-          parsed.timerState.remainingSeconds = Math.max(0, Math.ceil((parsed.timerState.expectedEndAt - now) / 1000));
+          merged.timerState.remainingSeconds = Math.max(0, Math.ceil((merged.timerState.expectedEndAt - now) / 1000));
         }
       }
 
-      return parsed;
+      return merged;
     } catch (e) {
       console.warn('Failed to load storage:', e);
       return getDefaultInitialData();

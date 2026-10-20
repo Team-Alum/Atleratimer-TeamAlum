@@ -2,12 +2,24 @@ import React from 'react';
 import { useTimer } from '../../context/useTimer';
 import { storageService } from '../../services/storageService';
 import AccountSection from '../account/AccountSection';
-import { Download, Trash2, RotateCcw, Info, ShieldCheck } from 'lucide-react';
+import { AMBIENT_SCENES } from '../../ambient/AmbientStage';
+import { Download, Trash2, RotateCcw, Info, ShieldCheck, Music, Waves } from 'lucide-react';
 
 const YEAR = new Date().getFullYear();
 
 export default function SettingsView() {
   const { data, setData, setActiveView } = useTimer();
+
+  const musicSettings = data?.musicSettings || {};
+  const ambientSettings = data?.ambientSettings || {};
+
+  const updateMusic = (patch) => {
+    setData((prev) => ({ ...prev, musicSettings: { ...prev.musicSettings, ...patch } }));
+  };
+
+  const updateAmbient = (patch) => {
+    setData((prev) => ({ ...prev, ambientSettings: { ...prev.ambientSettings, ...patch } }));
+  };
 
   const handleExportJSON = () => {
     const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
@@ -46,6 +58,85 @@ export default function SettingsView() {
     <div className="view-container">
       {/* Account & Cloud Sync */}
       <AccountSection />
+
+      {/* Music & Ambient */}
+      <div className="view-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <Music size={19} className="stat-card-icon" />
+          <h2 className="view-card-title" style={{ margin: 0 }}>Music & Ambient</h2>
+        </div>
+        <p className="view-card-desc">
+          Personalize the focus soundscape — music playback preferences and the ambient background behind the timer.
+        </p>
+
+        <div className="setting-row">
+          <div>
+            <div className="setting-label">Default music volume</div>
+            <div className="setting-help">Applied when the music player starts</div>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round((musicSettings.volume ?? 0.8) * 100)}
+            onChange={(e) => updateMusic({ volume: Number(e.target.value) / 100 })}
+            aria-label="Default music volume"
+            style={{ width: 160 }}
+          />
+        </div>
+
+        <div className="setting-row">
+          <div>
+            <div className="setting-label">Remember last playlist</div>
+            <div className="setting-help">Reopens your queue on the next visit — music never starts by itself</div>
+          </div>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={musicSettings.rememberLastPlaylist !== false}
+              onChange={(e) => updateMusic({ rememberLastPlaylist: e.target.checked })}
+            />
+            <span className="toggle-slider" />
+          </label>
+        </div>
+
+        <div className="setting-row">
+          <div>
+            <div className="setting-label">Start music when a focus session begins</div>
+            <div className="setting-help">Browsers may still require one click before audio can start</div>
+          </div>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={Boolean(musicSettings.musicOnSessionStart)}
+              onChange={(e) => updateMusic({ musicOnSessionStart: e.target.checked })}
+            />
+            <span className="toggle-slider" />
+          </label>
+        </div>
+
+        <div className="setting-row">
+          <div>
+            <div className="setting-label"><Waves size={13} style={{ verticalAlign: '-2px' }} /> Default ambient background</div>
+            <div className="setting-help">The scene shown behind the focus dashboard</div>
+          </div>
+          <select
+            className="form-input"
+            style={{ width: 200 }}
+            value={ambientSettings.enabled === false ? 'off' : (ambientSettings.scene || 'starry-sky')}
+            onChange={(e) => {
+              if (e.target.value === 'off') updateAmbient({ enabled: false });
+              else updateAmbient({ scene: e.target.value, enabled: true });
+            }}
+            aria-label="Default ambient background"
+          >
+            {AMBIENT_SCENES.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+            <option value="off">Static background (no animation)</option>
+          </select>
+        </div>
+      </div>
 
       {/* Data Management */}
       <div className="view-card">

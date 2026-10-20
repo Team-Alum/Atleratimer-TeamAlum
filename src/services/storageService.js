@@ -10,65 +10,12 @@ export function getLocalDateString(d = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-// Generate default realistic initial history matching the reference screenshot
+// Generate default initial data (clean state — no demo history)
 function getDefaultInitialData() {
-  const todayStr = getLocalDateString();
-  const now = new Date();
-
-  // Helper for generating dates in the last 7 days
-  const makePastDate = (daysAgo) => {
-    const d = new Date(now);
-    d.setDate(d.getDate() - daysAgo);
-    return getLocalDateString(d);
-  };
-
-  // 7-day activity distribution summing to 440 minutes (7h 20m) matching the reference
-  // Day order: 6 days ago -> 5 days ago -> ... -> today (matching W, T, F, S, S, M, T)
-  const pastDaysActivity = {
-    [makePastDate(6)]: 75, // Wed
-    [makePastDate(5)]: 70, // Thu
-    [makePastDate(4)]: 50, // Fri
-    [makePastDate(3)]: 90, // Sat
-    [makePastDate(2)]: 30, // Sun
-    [makePastDate(1)]: 75, // Mon
-    [todayStr]: 50,        // Tue (today - 2 sessions: 25m + 25m = 50m)
-  };
-
-  const initialSessions = [
-    {
-      id: 'session-live-01',
-      title: 'Design research',
-      type: 'focus',
-      startTime: '09:35',
-      durationMinutes: 25,
-      completed: false,
-      date: todayStr,
-      timestamp: Date.now() - 6 * 60 * 1000 - 18 * 1000,
-    },
-    {
-      id: 'session-completed-01',
-      title: 'Reading & notes',
-      type: 'focus',
-      startTime: '09:00',
-      durationMinutes: 25,
-      completed: true,
-      date: todayStr,
-      timestamp: Date.now() - 40 * 60 * 1000,
-    },
-    {
-      id: 'session-completed-02',
-      title: 'Morning writing',
-      type: 'focus',
-      startTime: '08:30',
-      durationMinutes: 25,
-      completed: true,
-      date: todayStr,
-      timestamp: Date.now() - 80 * 60 * 1000,
-    },
-  ];
+  const focusMins = 25;
 
   return {
-    version: 1,
+    version: 2,
     theme: 'light', // 'light' or 'dark'
     accentColor: '#078596',
     soundEnabled: true,
@@ -79,7 +26,7 @@ function getDefaultInitialData() {
     reducedMotion: false,
     desktopNotifications: false,
     timerSettings: {
-      focusDuration: 25, // minutes
+      focusDuration: focusMins, // minutes
       shortBreakDuration: 5,
       longBreakDuration: 15,
       sessionsPerCycle: 4,
@@ -89,16 +36,16 @@ function getDefaultInitialData() {
     },
     timerState: {
       mode: 'focus', // 'focus', 'short_break', 'long_break'
-      sessionTitle: 'Design research',
-      cycleIndex: 3, // session 3 of 4
-      remainingSeconds: 18 * 60 + 42, // 18:42
-      totalSeconds: 25 * 60,
+      sessionTitle: 'Focus session',
+      cycleIndex: 1, // session 1 of N
+      remainingSeconds: focusMins * 60,
+      totalSeconds: focusMins * 60,
       isRunning: false,
       lastStartedAt: null,
       expectedEndAt: null,
     },
-    history: initialSessions,
-    dailyActivity: pastDaysActivity,
+    history: [],
+    dailyActivity: {},
   };
 }
 
@@ -115,7 +62,8 @@ export const storageService = {
         return defaults;
       }
       const parsed = JSON.parse(raw);
-      if (!parsed || parsed.version !== 1) {
+      if (!parsed || parsed.version !== 2) {
+        // Includes v1 data (which contained seeded demo history) — reset to clean state
         const defaults = getDefaultInitialData();
         this.saveData(defaults);
         return defaults;

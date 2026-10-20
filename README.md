@@ -56,4 +56,4 @@ npm run preview
 - **Canvas-Confetti**
 - **Web Audio API**
 - **HTML5 Web Notification API**
-- **LocalStorage V1 State Persistence**
+- **LocalStorage V2 State Persistence**

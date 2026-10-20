@@ -11,10 +11,8 @@ export default function SessionLogCard() {
   const secs = remainingSeconds % 60;
   const liveTimeString = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
-  // Get completed sessions (excluding temporary live placeholders)
-  const completedHistory = (data.history || []).filter(
-    (h) => h.completed && h.id !== 'session-live-01'
-  );
+  // Get completed sessions
+  const completedHistory = (data.history || []).filter((h) => h.completed);
 
   return (
     <div className="stat-card">

@@ -167,7 +167,7 @@ export function TimerProvider({ children }) {
       };
 
       // Update history list
-      const updatedHistory = [newHistoryItem, ...prev.history.filter((h) => h.id !== 'session-live-01')];
+      const updatedHistory = [newHistoryItem, ...prev.history];
 
       const shouldAutoStart = isFocus ? prev.timerSettings.autoStartBreaks : prev.timerSettings.autoStartFocus;
 

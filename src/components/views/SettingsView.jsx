@@ -2,7 +2,7 @@ import React from 'react';
 import { useTimer } from '../../context/useTimer';
 import { storageService } from '../../services/storageService';
 import AccountSection from '../account/AccountSection';
-import { AMBIENT_SCENES } from '../../ambient/AmbientStage';
+import { AMBIENT_SCENES } from '../../ambient/scenes';
 import { Download, Trash2, RotateCcw, Info, ShieldCheck, Music, Waves } from 'lucide-react';
 
 const YEAR = new Date().getFullYear();

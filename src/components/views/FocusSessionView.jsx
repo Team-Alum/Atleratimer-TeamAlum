@@ -6,7 +6,6 @@ import WeeklyRhythmCard from '../stats/WeeklyRhythmCard';
 import SessionLogCard from '../stats/SessionLogCard';
 import UpcomingSessionCards from '../cards/UpcomingSessionCards';
 import Watermark from '../layout/Watermark';
-import AmbientStage from '../../ambient/AmbientStage';
 
 export default function FocusSessionView() {
   const { timerSettings } = useTimer();
@@ -15,9 +14,6 @@ export default function FocusSessionView() {
 
   return (
     <>
-      {/* Ambient cinematic background (behind everything, never blocks input) */}
-      <AmbientStage />
-
       {/* 2-Column Dashboard Grid */}
       <div className="dashboard-grid">
         {/* Left: Primary Focus Timer Card */}

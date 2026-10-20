@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useTimer } from '../../context/useTimer';
 import { Bell, Sun, Moon, Menu } from 'lucide-react';
 import { notificationService } from '../../services/notificationService';
+import AmbientMenu from '../../ambient/AmbientMenu';
 
 export default function DashboardHeader({ onOpenMobileMenu }) {
   const { theme, toggleTheme, activeView, data, setData } = useTimer();
@@ -100,6 +101,9 @@ export default function DashboardHeader({ onOpenMobileMenu }) {
             <span>Dark</span>
           </button>
         </div>
+
+        {/* Ambient background picker */}
+        <AmbientMenu />
       </div>
     </header>
   );

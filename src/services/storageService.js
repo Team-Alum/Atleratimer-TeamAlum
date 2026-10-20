@@ -40,8 +40,10 @@ function getDefaultInitialData() {
       musicOnSessionStart: false,
     },
     ambientSettings: {
-      scene: 'starry-sky', // 'rainy-night' | 'night-drive' | 'starry-sky' | 'cozy-room' | 'minimal'
+      scene: 'starry-sky', // 'rainy-night' (Rainy City) | 'night-drive' | 'starry-sky' | 'cozy-room' | 'forest-rain' | 'minimal'
       enabled: true,
+      motion: true,  // "disable animation" toggle in the ambient popover
+      dim: 0.25,     // dark readability overlay in front of the background
     },
     timerState: {
       mode: 'focus', // 'focus', 'short_break', 'long_break'

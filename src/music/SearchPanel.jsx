@@ -1,4 +1,5 @@
-// Music search drawer — queries the /api/youtube-search serverless proxy.
+// Music search section — embedded inside the expanded mini-player panel.
+// Queries the /api/youtube-search serverless proxy (real YouTube results).
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useMusic } from './MusicPlayerContext';
@@ -9,7 +10,7 @@ import { Search, Play, Plus, Loader2, Music2, Check } from 'lucide-react';
 const SUGGESTIONS = ['Lo-fi study music', 'Ambient music', 'Rain sounds', 'Piano music', 'Classical study music', 'Instrumental music', 'Nature sounds', 'White noise'];
 const clientCache = new Map(); // query -> results (session-scoped)
 
-export default function SearchPanel({ onClose }) {
+export default function SearchSection({ inputRef }) {
   const { state, actions, isBusy } = useMusic();
   const { playlists, actions: playlistActions } = usePlaylists();
 
@@ -20,10 +21,8 @@ export default function SearchPanel({ onClose }) {
   const [addToFor, setAddToFor] = useState(null); // track being added; picker open
   const [flash, setFlash] = useState(null);       // { videoId, kind: 'added' | 'duplicate' }
   const abortRef = useRef(null);
-  const inputRef = useRef(null);
 
   useEffect(() => () => abortRef.current?.abort(), []);
-  useEffect(() => { inputRef.current?.focus(); }, []);
 
   const runSearch = useCallback(async (rawQuery) => {
     const q = rawQuery.trim();
@@ -78,12 +77,7 @@ export default function SearchPanel({ onClose }) {
   };
 
   return (
-    <div className="music-drawer music-drawer-left" role="dialog" aria-label="Search music">
-      <div className="drawer-header">
-        <span className="drawer-title">Search music</span>
-        <button type="button" className="drawer-close" onClick={onClose} aria-label="Close search">✕</button>
-      </div>
-
+    <div className="mp-search">
       <form className="search-form" onSubmit={handleSubmit} role="search">
         <input
           ref={inputRef}

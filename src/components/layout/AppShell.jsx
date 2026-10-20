@@ -9,6 +9,7 @@ import SettingsView from '../views/SettingsView';
 import SessionHistoryModal from '../stats/SessionHistoryModal';
 import Watermark from './Watermark';
 import MusicBar from '../../music/MusicBar';
+import AmbientStage from '../../ambient/AmbientStage';
 import { Menu, Hourglass } from 'lucide-react';
 
 export default function AppShell() {
@@ -42,6 +43,9 @@ export default function AppShell() {
 
       {/* Main Workspace */}
       <main className="main-workspace">
+        {/* Ambient cinematic background (behind everything, never blocks input) */}
+        <AmbientStage />
+
         <DashboardHeader
           onOpenMobileMenu={() => setMobileMenuOpen(true)}
         />

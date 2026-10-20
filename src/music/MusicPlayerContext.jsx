@@ -126,7 +126,8 @@ export function MusicProvider({ children }) {
       return;
     }
     const track = queue[nextIndex];
-    set({ track, index: nextIndex, status: 'loading', error: null, currentTime: 0 });
+    // Auto/manual advance always surfaces the player (see setPlayerVisible).
+    set({ track, index: nextIndex, status: 'loading', error: null, currentTime: 0, playerVisible: true });
     try {
       playerRef.current?.loadVideoById?.(track.videoId);
     } catch (err) {
@@ -246,7 +247,11 @@ export function MusicProvider({ children }) {
     if (!player || !stateRef.current.track) return;
     try {
       if (stateRef.current.status === 'playing') player.pauseVideo();
-      else player.playVideo();
+      else {
+        // Resuming requires the player to be on screen (YouTube policy).
+        set({ playerVisible: true });
+        player.playVideo();
+      }
     } catch (err) {
       set({ status: 'error', error: { message: err?.message || 'Playback control failed.' } });
     }
@@ -374,7 +379,14 @@ export function MusicProvider({ children }) {
       playTrack, playAll, toggle, next, prev, seekFraction,
       setVolume, toggleMute, cycleRepeat, toggleShuffle,
       enqueue, removeQueued, stop, retry, clearError,
-      setPlayerVisible: (visible) => set({ playerVisible: visible }),
+      setPlayerVisible: (visible) => {
+        if (!visible) {
+          // YouTube policy: the embedded player must stay visible while it
+          // plays. Hiding the panel always pauses playback first.
+          try { playerRef.current?.pauseVideo?.(); } catch { /* ignore */ }
+        }
+        set({ playerVisible: visible });
+      },
       setQueue: (queue, index = 0) => set({ queue, index, track: queue[index] || null }),
     },
     lastPlaylist,

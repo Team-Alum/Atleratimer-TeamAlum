@@ -2621,14 +2621,30 @@
 html.timer-focus-active,
 body.timer-focus-active {
   overflow: hidden;
+  height: 100%;
+}
+
+html.timer-focus-active * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html.timer-focus-active .timer-focus-overlay *,
+html.timer-focus-active .music-root *,
+html.timer-focus-active .dashboard-header .ambient-menu,
+html.timer-focus-active .dashboard-header .ambient-menu * {
+  -webkit-user-select: auto;
+  user-select: auto;
 }
 
 html.timer-focus-active .app-container {
-  background: transparent;
+  background: transparent !important;
+  pointer-events: none !important;
 }
 
 html.timer-focus-active .ambient-root {
-  z-index: 0;
+  z-index: 0 !important;
+  pointer-events: none !important;
 }
 
 html.timer-focus-active .app-sidebar,
@@ -2652,13 +2668,19 @@ html.timer-focus-active .focus-timer-card > *:not(.timer-focus-overlay) {
   display: none !important;
   pointer-events: none !important;
   visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }
 
 html.timer-focus-active .main-workspace {
   padding: 0 !important;
-  max-width: 100% !important;
+  max-width: 100vw !important;
   margin: 0 !important;
-  width: 100% !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
 }
 
 html.timer-focus-active .dashboard-header {
@@ -2667,19 +2689,21 @@ html.timer-focus-active .dashboard-header {
   right: 16px !important;
   left: auto !important;
   width: auto !important;
+  height: auto !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
-  z-index: 96 !important;
+  margin: 0 !important;
+  z-index: 1000 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  pointer-events: auto !important;
+  pointer-events: none !important;
 }
 
 html.timer-focus-active .header-actions {
   gap: 8px !important;
-  pointer-events: auto !important;
+  pointer-events: none !important;
 }
 
 html.timer-focus-active .ambient-menu {
@@ -2694,6 +2718,7 @@ html.timer-focus-active .ambient-header-btn {
   -webkit-backdrop-filter: var(--glass-blur);
   color: var(--text-primary);
   pointer-events: auto !important;
+  box-shadow: 0 10px 30px rgba(4, 8, 14, 0.25);
 }
 
 html.timer-focus-active .ambient-popover {
@@ -2704,9 +2729,11 @@ html.timer-focus-active .dashboard-grid {
   grid-template-columns: 1fr !important;
   gap: 0 !important;
   margin: 0 !important;
+  height: 100dvh !important;
   min-height: 100dvh !important;
   align-items: center !important;
   justify-items: center !important;
+  pointer-events: none !important;
 }
 
 html.timer-focus-active .focus-timer-card {
@@ -2714,8 +2741,23 @@ html.timer-focus-active .focus-timer-card {
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
+  margin: 0 !important;
   position: relative !important;
   pointer-events: none !important;
+  animation: focus-timer-in 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes focus-timer-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
 }
 
 html.timer-focus-active .timer-card-header {
@@ -2734,17 +2776,37 @@ html.timer-focus-active .timer-focus-overlay .timer-controls {
 
 html.timer-focus-active .timer-focus-overlay {
   pointer-events: none !important;
-  z-index: 95 !important;
+  z-index: 999 !important;
+  animation: focus-overlay-fade 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes focus-overlay-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 html.timer-focus-active .focus-exit {
   pointer-events: auto !important;
+  animation: focus-exit-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: 0.12s;
+}
+
+@keyframes focus-exit-in {
+  from { opacity: 0; transform: scale(0.8) translateY(-8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 html.timer-focus-active .music-root {
-  z-index: 96 !important;
+  z-index: 1000 !important;
   bottom: 28px !important;
-  pointer-events: auto !important;
+  pointer-events: none !important;
+  animation: focus-music-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: 0.16s;
+}
+
+@keyframes focus-music-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(14px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 html.timer-focus-active .music-pill,

@@ -139,10 +139,9 @@ export default function FocusTimerCard() {
       {/* Timer Controls, Presets & Ambient info */}
       <TimerControls />
 
-      {/* Fullscreen focus mode — only the timer + its controls, dark glass scrim.
-          Portaled to body so the fixed overlay is always viewport-bound. */}
+      {/* Fullscreen focus mode — only timer + controls, ambient video visible. */}
       {focusMode && createPortal(
-        <div className="timer-focus-overlay" role="dialog" aria-label="Fullscreen focus timer">
+        <div className="timer-focus-overlay" role="dialog" aria-label="Fullscreen focus timer" aria-modal="false">
           <button type="button" className="focus-exit" onClick={exitFocusMode} title="Exit fullscreen" aria-label="Exit fullscreen timer">
             <Minimize2 size={18} strokeWidth={2.2} />
           </button>

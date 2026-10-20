@@ -7,6 +7,7 @@ import CustomizableTimeView from '../views/CustomizableTimeView';
 import TimerCustomizationsView from '../views/TimerCustomizationsView';
 import SettingsView from '../views/SettingsView';
 import SessionHistoryModal from '../stats/SessionHistoryModal';
+import Watermark from './Watermark';
 import { Menu, Hourglass } from 'lucide-react';
 
 export default function AppShell() {
@@ -49,19 +50,19 @@ export default function AppShell() {
         {activeView === 'customizable_time' && (
           <>
             <CustomizableTimeView />
-            <div className="app-watermark">By &quot;TeamAlum - Sudarshan &amp; Soham&quot;</div>
+            <Watermark />
           </>
         )}
         {activeView === 'customizations' && (
           <>
             <TimerCustomizationsView />
-            <div className="app-watermark">By &quot;TeamAlum - Sudarshan &amp; Soham&quot;</div>
+            <Watermark />
           </>
         )}
         {activeView === 'settings' && (
           <>
             <SettingsView />
-            <div className="app-watermark">By &quot;TeamAlum - Sudarshan &amp; Soham&quot;</div>
+            <Watermark />
           </>
         )}
       </main>

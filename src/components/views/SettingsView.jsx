@@ -4,6 +4,8 @@ import { storageService } from '../../services/storageService';
 import AccountSection from '../account/AccountSection';
 import { Download, Trash2, RotateCcw, Info, ShieldCheck } from 'lucide-react';
 
+const YEAR = new Date().getFullYear();
+
 export default function SettingsView() {
   const { data, setData, setActiveView } = useTimer();
 
@@ -136,7 +138,7 @@ export default function SettingsView() {
 
           <div style={{ marginTop: 12, paddingTop: 14, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>Version: <strong>1.0.0 (Release)</strong></span>
-            <span>Atleratimer Focus Suite</span>
+            <span>© {YEAR} Atlera by Team Alum · All Rights Reserved</span>
           </div>
         </div>
       </div>

@@ -5,6 +5,7 @@ import TodayFocusCard from '../stats/TodayFocusCard';
 import WeeklyRhythmCard from '../stats/WeeklyRhythmCard';
 import SessionLogCard from '../stats/SessionLogCard';
 import UpcomingSessionCards from '../cards/UpcomingSessionCards';
+import Watermark from '../layout/Watermark';
 
 export default function FocusSessionView() {
   const { timerSettings } = useTimer();
@@ -36,9 +37,7 @@ export default function FocusSessionView() {
       </footer>
 
       {/* Watermark */}
-      <div className="app-watermark" aria-label="Application watermark">
-        By &quot;TeamAlum - Sudarshan &amp; Soham&quot;
-      </div>
+      <Watermark />
     </>
   );
 }

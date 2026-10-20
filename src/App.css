@@ -952,12 +952,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
   font-size: 11.5px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
+  font-weight: 400;
+  letter-spacing: 0.04em;
   color: var(--text-muted);
   user-select: none;
   transition: color var(--transition-speed) ease;
+}
+
+.watermark-brand {
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.watermark-founders {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.watermark-sep {
+  opacity: 0.5;
 }
 
 .app-watermark:hover {

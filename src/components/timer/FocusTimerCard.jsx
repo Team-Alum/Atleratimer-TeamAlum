@@ -14,18 +14,25 @@ export default function FocusTimerCard() {
   const [focusMode, setFocusMode] = useState(false);
 
   // Fullscreen focus mode: Escape and native-fullscreen exit both close it.
-  // Hides dashboard chrome and keeps only the timer, ambient button and music player visible
+  // Hides all dashboard chrome and keeps only the timer, ambient button and music player interactive/visible
   // so the ambient video stays unobstructed. The timer state lives in TimerContext,
   // so entering or exiting never resets or duplicates the countdown.
   useEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
     if (focusMode) {
       root.classList.add('timer-focus-active');
+      body.classList.add('timer-focus-active');
+      body.style.overflow = 'hidden';
     } else {
       root.classList.remove('timer-focus-active');
+      body.classList.remove('timer-focus-active');
+      body.style.overflow = '';
     }
     return () => {
       root.classList.remove('timer-focus-active');
+      body.classList.remove('timer-focus-active');
+      body.style.overflow = '';
     };
   }, [focusMode]);
 

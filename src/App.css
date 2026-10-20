@@ -2618,6 +2618,11 @@
 }
 
 /* When timer is in focus mode: show only video + timer + music + ambient button */
+html.timer-focus-active,
+body.timer-focus-active {
+  overflow: hidden;
+}
+
 html.timer-focus-active .app-container {
   background: transparent;
 }
@@ -2627,16 +2632,26 @@ html.timer-focus-active .ambient-root {
 }
 
 html.timer-focus-active .app-sidebar,
+html.timer-focus-active .sidebar-backdrop,
 html.timer-focus-active .mobile-top-bar,
 html.timer-focus-active .dashboard-header .header-info,
 html.timer-focus-active .dashboard-header .mobile-menu-btn,
 html.timer-focus-active .dashboard-header .theme-toggle-pill,
 html.timer-focus-active .dashboard-header .notification-btn,
+html.timer-focus-active .dashboard-header .brand-icon-box,
+html.timer-focus-active .dashboard-header .header-date,
+html.timer-focus-active .dashboard-header .header-title,
 html.timer-focus-active .stats-column,
 html.timer-focus-active .workspace-footer,
 html.timer-focus-active .watermark,
+html.timer-focus-active .session-history-modal,
+html.timer-focus-active .session-history-backdrop,
+html.timer-focus-active .toast-container,
+html.timer-focus-active [data-radix-popper-content-wrapper],
 html.timer-focus-active .focus-timer-card > *:not(.timer-focus-overlay) {
   display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 
 html.timer-focus-active .main-workspace {
@@ -2647,26 +2662,29 @@ html.timer-focus-active .main-workspace {
 }
 
 html.timer-focus-active .dashboard-header {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  left: auto;
-  width: auto;
+  position: fixed !important;
+  top: 16px !important;
+  right: 16px !important;
+  left: auto !important;
+  width: auto !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
-  z-index: 95;
+  z-index: 96 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  pointer-events: auto !important;
 }
 
 html.timer-focus-active .header-actions {
-  gap: 8px;
+  gap: 8px !important;
+  pointer-events: auto !important;
 }
 
 html.timer-focus-active .ambient-menu {
   display: inline-flex !important;
+  pointer-events: auto !important;
 }
 
 html.timer-focus-active .ambient-header-btn {
@@ -2675,15 +2693,20 @@ html.timer-focus-active .ambient-header-btn {
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   color: var(--text-primary);
+  pointer-events: auto !important;
+}
+
+html.timer-focus-active .ambient-popover {
+  pointer-events: auto !important;
 }
 
 html.timer-focus-active .dashboard-grid {
   grid-template-columns: 1fr !important;
   gap: 0 !important;
   margin: 0 !important;
-  min-height: 100dvh;
-  align-items: center;
-  justify-items: center;
+  min-height: 100dvh !important;
+  align-items: center !important;
+  justify-items: center !important;
 }
 
 html.timer-focus-active .focus-timer-card {
@@ -2691,6 +2714,8 @@ html.timer-focus-active .focus-timer-card {
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
+  position: relative !important;
+  pointer-events: none !important;
 }
 
 html.timer-focus-active .timer-card-header {
@@ -2699,18 +2724,36 @@ html.timer-focus-active .timer-card-header {
 
 html.timer-focus-active .circular-timer-container {
   margin: 0 !important;
+  pointer-events: none !important;
+}
+
+html.timer-focus-active .timer-focus-overlay .circular-timer-container,
+html.timer-focus-active .timer-focus-overlay .timer-controls {
+  pointer-events: auto !important;
+}
+
+html.timer-focus-active .timer-focus-overlay {
+  pointer-events: none !important;
+  z-index: 95 !important;
+}
+
+html.timer-focus-active .focus-exit {
+  pointer-events: auto !important;
 }
 
 html.timer-focus-active .music-root {
-  z-index: 95;
-  bottom: 28px;
+  z-index: 96 !important;
+  bottom: 28px !important;
+  pointer-events: auto !important;
 }
 
-html.timer-focus-active .music-pill {
+html.timer-focus-active .music-pill,
+html.timer-focus-active .music-panel {
   background: var(--glass-bg-strong);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
+  pointer-events: auto !important;
 }
 
 /* ---------- YouTube player (audio-only) ------------------------------------ */

@@ -87,6 +87,10 @@ export default function AmbientStage() {
   return (
     <div className={`ambient-root${reduceClass}`} aria-hidden="true">
       <div className="ambient-fallback" />
+      {/* Static poster for scenes without a canvas fallback (motion off or video failed) */}
+      {!videoSrc && !useFallbackScene && scene.poster && (
+        <img className="ambient-poster" src={scene.poster} alt="" />
+      )}
       {sceneNode}
       {videoSrc && (
         <video

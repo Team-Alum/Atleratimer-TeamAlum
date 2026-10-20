@@ -40,7 +40,7 @@ function getDefaultInitialData() {
       musicOnSessionStart: false,
     },
     ambientSettings: {
-      scene: 'starry-sky', // 'rainy-night' (Rainy City) | 'night-drive' | 'starry-sky' | 'cozy-room' | 'forest-rain' | 'minimal'
+      scene: 'starry-sky', // 'rainy-night' (Rainy City) | 'night-drive' | 'starry-sky' | 'cozy-room' | 'forest-rain' | 'ocean-waves' | 'snowy-pines' | 'rainy-window' | 'aurora' | 'minimal'
       enabled: true,
       motion: true,  // "disable animation" toggle in the ambient popover
       dim: 0.25,     // dark readability overlay in front of the background

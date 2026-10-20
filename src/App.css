@@ -1343,6 +1343,15 @@
   transition: opacity 0.3s ease;
 }
 
+/* Static poster shown when video is off (reduced motion / no canvas scene) */
+.ambient-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .ambient-root.reduce-motion .ambient-video {
   transition: none;
 }
@@ -1829,6 +1838,9 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .ambient-option {
@@ -2318,38 +2330,29 @@
   outline-offset: 2px;
 }
 
-/* ---------- YouTube player panel ------------------------------------------ */
+/* ---------- YouTube player (audio-only) ------------------------------------ */
+/* The IFrame API needs its host in the DOM to play audio, but the video
+   square is intentionally never shown — playback is audio-only. The 1px
+   off-screen box keeps the player alive without painting anything. */
 .yt-host-wrap {
   position: fixed;
-  right: 20px;
-  bottom: 92px;
-  z-index: 72;
-  width: 200px;
-  height: 200px;
-  border-radius: 14px;
-  overflow: hidden;
-  background: #000000;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.3);
+  left: -9999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
   opacity: 0;
-  transform: translateY(12px);
   pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.yt-host-wrap.visible {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
+  overflow: hidden;
 }
 
 #atlera-yt-host,
 #atlera-yt-host iframe,
 .yt-host-wrap iframe {
-  width: 200px;
-  height: 200px;
+  width: 1px;
+  height: 1px;
   display: block;
   border: 0;
+  pointer-events: none;
 }
 
 /* ---------- Drawers ------------------------------------------------------- */
@@ -2961,13 +2964,6 @@
     max-height: calc(100vh - 110px);
   }
 
-  /* Player moves to the top-right so the expanded bottom sheet never covers it */
-  .yt-host-wrap {
-    top: 84px;
-    bottom: auto;
-    right: 12px;
-  }
-
   .music-toast {
     bottom: 84px;
     font-size: 12.5px;
@@ -3038,7 +3034,6 @@
   }
 
   .music-panel,
-  .yt-host-wrap,
   .ambient-video {
     transition: none !important;
   }

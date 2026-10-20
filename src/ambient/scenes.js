@@ -37,6 +37,30 @@ export const AMBIENT_SCENES = [
     poster: '/assets/ambient/forest-rain.jpg',
   },
   {
+    id: 'ocean-waves',
+    name: 'Ocean Waves',
+    video: '/assets/ambient/ocean-waves.mp4',
+    poster: '/assets/ambient/ocean-waves.jpg',
+  },
+  {
+    id: 'snowy-pines',
+    name: 'Snowy Pines',
+    video: '/assets/ambient/snowy-pines.mp4',
+    poster: '/assets/ambient/snowy-pines.jpg',
+  },
+  {
+    id: 'rainy-window',
+    name: 'Rainy Window',
+    video: '/assets/ambient/rainy-window.mp4',
+    poster: '/assets/ambient/rainy-window.jpg',
+  },
+  {
+    id: 'aurora',
+    name: 'Aurora',
+    video: '/assets/ambient/aurora.mp4',
+    poster: '/assets/ambient/aurora.jpg',
+  },
+  {
     id: 'minimal',
     name: 'Minimal Ambient',
     video: '/assets/ambient/minimal.mp4',

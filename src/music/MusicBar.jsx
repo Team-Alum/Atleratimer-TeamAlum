@@ -12,7 +12,7 @@ import SearchSection from './SearchPanel';
 import PlaylistPanel from './PlaylistPanel';
 import {
   Play, Pause, SkipBack, SkipForward, Repeat, Repeat1, Shuffle,
-  Volume2, VolumeX, Search, ListMusic, ListVideo, ChevronDown,
+  Volume2, VolumeX, Search, ListMusic, ChevronDown,
   Loader2, AlertTriangle, Music2,
 } from 'lucide-react';
 
@@ -102,16 +102,6 @@ export default function MusicBar() {
             <span className="mp-sub">{subText()}</span>
           </div>
           <div className="mp-header-actions">
-            <button
-              type="button"
-              className={`mb-btn${state.playerVisible ? ' on' : ''}`}
-              onClick={() => actions.setPlayerVisible(!state.playerVisible)}
-              title={state.playerVisible ? 'Hide video player' : 'Show video player'}
-              aria-label="Toggle video player"
-              aria-pressed={state.playerVisible}
-            >
-              <ListVideo size={15} />
-            </button>
             <button type="button" className="mb-btn" onClick={collapse} title="Collapse player" aria-label="Collapse player">
               <ChevronDown size={16} />
             </button>

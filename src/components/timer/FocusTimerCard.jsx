@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useTimer } from '../../context/useTimer';
 import CircularTimer from './CircularTimer';
 import TimerControls from './TimerControls';
-import { BookOpen, Pencil, Check, Maximize2, Minimize2 } from 'lucide-react';
+import FocusFullscreen from './FocusFullscreen';
+import { BookOpen, Pencil, Check, Maximize2 } from 'lucide-react';
 
 export default function FocusTimerCard() {
   const { timerState, timerSettings, setSessionTitle } = useTimer();
@@ -13,33 +13,15 @@ export default function FocusTimerCard() {
   const [tempTitle, setTempTitle] = useState(sessionTitle);
   const [focusMode, setFocusMode] = useState(false);
 
-  // Fullscreen focus mode: Escape and native-fullscreen exit both close it.
-  // Hides all dashboard chrome and keeps only the timer, ambient button and music player interactive/visible
-  // so the ambient video stays unobstructed. The timer state lives in TimerContext,
-  // so entering or exiting never resets or duplicates the countdown.
-  useEffect(() => {
-    const root = document.documentElement;
-    const body = document.body;
-    if (focusMode) {
-      root.classList.add('timer-focus-active');
-      body.classList.add('timer-focus-active');
-      body.style.overflow = 'hidden';
-    } else {
-      root.classList.remove('timer-focus-active');
-      body.classList.remove('timer-focus-active');
-      body.style.overflow = '';
-    }
-    return () => {
-      root.classList.remove('timer-focus-active');
-      body.classList.remove('timer-focus-active');
-      body.style.overflow = '';
-    };
-  }, [focusMode]);
-
+  // Browser fullscreen + app state (state lives in TimerContext; never reset)
   useEffect(() => {
     if (!focusMode) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') setFocusMode(false); };
-    const onFsChange = () => { if (!document.fullscreenElement) setFocusMode(false); };
+    const onFsChange = () => {
+      if (!document.fullscreenElement) {
+        setFocusMode(false);
+      }
+    };
     document.addEventListener('keydown', onKey);
     document.addEventListener('fullscreenchange', onFsChange);
     return () => {
@@ -51,8 +33,9 @@ export default function FocusTimerCard() {
   const enterFocusMode = () => {
     setFocusMode(true);
     try {
-      document.documentElement.requestFullscreen?.()?.catch?.(() => { /* CSS layout still applies */ });
-    } catch { /* ignore — unsupported */ }
+      const el = document.documentElement;
+      el.requestFullscreen?.()?.catch?.(() => {});
+    } catch { /* ignore */ }
   };
 
   const exitFocusMode = () => {
@@ -139,19 +122,8 @@ export default function FocusTimerCard() {
       {/* Timer Controls, Presets & Ambient info */}
       <TimerControls />
 
-      {/* Fullscreen focus mode — only timer + controls, ambient video visible. */}
-      {focusMode && createPortal(
-        <div className="timer-focus-overlay" role="dialog" aria-label="Fullscreen focus timer" aria-modal="false">
-          <button type="button" className="focus-exit" onClick={exitFocusMode} title="Exit fullscreen" aria-label="Exit fullscreen timer">
-            <Minimize2 size={18} strokeWidth={2.2} />
-          </button>
-          <div className="focus-timer-stack">
-            <CircularTimer />
-            <TimerControls />
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* Dedicated fullscreen focus layout (single timer instance) */}
+      {focusMode && <FocusFullscreen onExit={exitFocusMode} />}
     </div>
   );
 }

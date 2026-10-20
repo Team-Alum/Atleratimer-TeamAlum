@@ -1,6 +1,6 @@
-# Atleratimer — Focus Study Timer & Deep Work Dashboard
+# Atlera Timer — Focus Study Timer & Deep Work Dashboard
 
-**Atleratimer** is a premium, minimalist, distraction-free productivity and study timer application engineered for high-performance deep work sessions.
+**Atlera Timer** is a premium, minimalist, distraction-free productivity and study timer application engineered for high-performance deep work sessions.
 
 ---
 

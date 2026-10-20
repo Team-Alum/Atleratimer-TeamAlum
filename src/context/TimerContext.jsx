@@ -3,10 +3,14 @@ import { TimerContext } from './TimerContextInstance';
 import { storageService, getLocalDateString } from '../services/storageService';
 import { soundService } from '../services/audioService';
 import { notificationService } from '../services/notificationService';
+import { syncService } from '../services/syncService';
+import { useAuth } from './useAuth';
 import confetti from 'canvas-confetti';
 
 export function TimerProvider({ children }) {
   const [data, setData] = useState(() => storageService.loadData());
+  const { user } = useAuth() || {};
+  const userId = user?.id ?? null;
   const [activeView, setActiveView] = useState('focus'); // 'focus', 'customizable_time', 'customizations', 'settings'
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -21,6 +25,40 @@ export function TimerProvider({ children }) {
   useEffect(() => {
     storageService.saveData(data);
   }, [data]);
+
+  // Pull cloud history and merge it into local state (idempotent by session id)
+  const pullFromCloud = useCallback(async () => {
+    if (!userId) return 0;
+    const remote = await syncService.pullSessions();
+    if (!remote.length) return 0;
+
+    let addedCount = 0;
+    setData((prev) => {
+      const localIds = new Set((prev.history || []).map((h) => h.id));
+      const newOnes = remote.filter((r) => !localIds.has(r.id));
+      addedCount = newOnes.length;
+      if (newOnes.length === 0) return prev;
+
+      const merged = [...prev.history, ...newOnes].sort((a, b) => b.timestamp - a.timestamp);
+
+      // Credit cloud focus minutes to the 7-day chart without touching local figures
+      const updatedActivity = { ...prev.dailyActivity };
+      for (const s of newOnes) {
+        if (s.type === 'focus' && s.completed) {
+          updatedActivity[s.date] = (updatedActivity[s.date] || 0) + s.durationMinutes;
+        }
+      }
+
+      return { ...prev, history: merged, dailyActivity: updatedActivity };
+    });
+    return addedCount;
+  }, [userId]);
+
+  // Auto-pull whenever the signed-in user changes
+  useEffect(() => {
+    if (!userId) return;
+    pullFromCloud().catch((err) => console.warn('Cloud sync pull failed:', err));
+  }, [userId, pullFromCloud]);
 
   // Set HTML theme attribute
   useEffect(() => {
@@ -113,6 +151,13 @@ export function TimerProvider({ children }) {
       timestamp: Date.now(),
     };
 
+    // Fire-and-forget cloud backup of the completed session
+    if (userId) {
+      syncService.pushSession(newHistoryItem, userId).catch((err) => {
+        console.warn('Failed to push session to cloud:', err);
+      });
+    }
+
     setData((prev) => {
       // Update daily focus minutes if it was a focus session
       const currentTodayMins = (prev.dailyActivity[todayStr] || 0) + (isFocus ? durationMins : 0);
@@ -155,6 +200,7 @@ export function TimerProvider({ children }) {
     chimeType,
     desktopNotifications,
     triggerConfetti,
+    userId,
   ]);
 
   // Tick function using exact timestamp difference
@@ -439,6 +485,7 @@ export function TimerProvider({ children }) {
         switchPreset,
         setSessionTitle,
         toggleAmbientSound,
+        pullFromCloud,
         todayFocusMinutes,
         completedFocusSessionsToday,
         last7DaysData,

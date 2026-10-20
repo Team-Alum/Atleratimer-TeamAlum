@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTimer } from '../../context/useTimer';
 import { storageService } from '../../services/storageService';
+import AccountSection from '../account/AccountSection';
 import { Download, Trash2, RotateCcw, Info, ShieldCheck } from 'lucide-react';
 
 export default function SettingsView() {
@@ -41,11 +42,15 @@ export default function SettingsView() {
 
   return (
     <div className="view-container">
+      {/* Account & Cloud Sync */}
+      <AccountSection />
+
       {/* Data Management */}
       <div className="view-card">
         <h2 className="view-card-title">Data Storage & Portability</h2>
         <p className="view-card-desc">
-          Atleratimer stores 100% of your data locally in your browser without telemetry or tracking cookies.
+          Atleratimer stores your data in your browser — and, when signed in, mirrors completed
+          sessions to your private Supabase cloud account. No telemetry or tracking cookies.
         </p>
 
         <div className="setting-row">

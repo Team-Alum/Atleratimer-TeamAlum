@@ -14,9 +14,21 @@ export default function FocusTimerCard() {
   const [focusMode, setFocusMode] = useState(false);
 
   // Fullscreen focus mode: Escape and native-fullscreen exit both close it.
-  // The overlay renders a second instance of the (pure, context-driven)
-  // ring + controls — the timer itself lives in TimerContext, so entering or
-  // exiting never resets or duplicates the countdown.
+  // Hides dashboard chrome and keeps only the timer, ambient button and music player visible
+  // so the ambient video stays unobstructed. The timer state lives in TimerContext,
+  // so entering or exiting never resets or duplicates the countdown.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (focusMode) {
+      root.classList.add('timer-focus-active');
+    } else {
+      root.classList.remove('timer-focus-active');
+    }
+    return () => {
+      root.classList.remove('timer-focus-active');
+    };
+  }, [focusMode]);
+
   useEffect(() => {
     if (!focusMode) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') setFocusMode(false); };
@@ -32,7 +44,7 @@ export default function FocusTimerCard() {
   const enterFocusMode = () => {
     setFocusMode(true);
     try {
-      document.documentElement.requestFullscreen?.()?.catch?.(() => { /* CSS overlay still covers the viewport */ });
+      document.documentElement.requestFullscreen?.()?.catch?.(() => { /* CSS layout still applies */ });
     } catch { /* ignore — unsupported */ }
   };
 

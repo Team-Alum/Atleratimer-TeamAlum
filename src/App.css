@@ -2562,10 +2562,9 @@
   justify-content: center;
   gap: 4px;
   padding: 40px 20px;
-  background: rgba(6, 10, 16, 0.78);
-  backdrop-filter: blur(26px) saturate(140%);
-  -webkit-backdrop-filter: blur(26px) saturate(140%);
+  background: transparent;
   animation: focus-overlay-in 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
 }
 
 @keyframes focus-overlay-in {
@@ -2575,11 +2574,16 @@
 
 .timer-focus-overlay .circular-timer-container {
   margin: 0;
+  pointer-events: auto;
+}
+
+.timer-focus-overlay .timer-controls {
+  pointer-events: auto;
 }
 
 .timer-focus-overlay .svg-ring-wrapper {
-  width: min(420px, 84vw);
-  height: min(420px, 84vw);
+  width: min(440px, 88vw);
+  height: min(440px, 88vw);
 }
 
 .focus-launch:focus-visible,
@@ -2598,16 +2602,115 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #ffffff;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease;
+  pointer-events: auto;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .focus-exit:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--glass-bg);
   transform: scale(1.06);
+}
+
+/* When timer is in focus mode: show only video + timer + music + ambient button */
+html.timer-focus-active .app-container {
+  background: transparent;
+}
+
+html.timer-focus-active .ambient-root {
+  z-index: 0;
+}
+
+html.timer-focus-active .app-sidebar,
+html.timer-focus-active .mobile-top-bar,
+html.timer-focus-active .dashboard-header .header-info,
+html.timer-focus-active .dashboard-header .mobile-menu-btn,
+html.timer-focus-active .dashboard-header .theme-toggle-pill,
+html.timer-focus-active .dashboard-header .notification-btn,
+html.timer-focus-active .stats-column,
+html.timer-focus-active .workspace-footer,
+html.timer-focus-active .watermark,
+html.timer-focus-active .focus-timer-card > *:not(.timer-focus-overlay) {
+  display: none !important;
+}
+
+html.timer-focus-active .main-workspace {
+  padding: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+html.timer-focus-active .dashboard-header {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  left: auto;
+  width: auto;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  z-index: 95;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.timer-focus-active .header-actions {
+  gap: 8px;
+}
+
+html.timer-focus-active .ambient-menu {
+  display: inline-flex !important;
+}
+
+html.timer-focus-active .ambient-header-btn {
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: var(--text-primary);
+}
+
+html.timer-focus-active .dashboard-grid {
+  grid-template-columns: 1fr !important;
+  gap: 0 !important;
+  margin: 0 !important;
+  min-height: 100dvh;
+  align-items: center;
+  justify-items: center;
+}
+
+html.timer-focus-active .focus-timer-card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+html.timer-focus-active .timer-card-header {
+  display: none !important;
+}
+
+html.timer-focus-active .circular-timer-container {
+  margin: 0 !important;
+}
+
+html.timer-focus-active .music-root {
+  z-index: 95;
+  bottom: 28px;
+}
+
+html.timer-focus-active .music-pill {
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
 }
 
 /* ---------- YouTube player (audio-only) ------------------------------------ */

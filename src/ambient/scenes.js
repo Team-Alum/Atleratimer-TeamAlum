@@ -61,6 +61,30 @@ export const AMBIENT_SCENES = [
     poster: '/assets/ambient/aurora.jpg',
   },
   {
+    id: 'tranquil-forest',
+    name: 'Tranquil Forest',
+    video: '/assets/ambient/tranquil-forest.mp4',
+    poster: '/assets/ambient/tranquil-forest.jpg',
+  },
+  {
+    id: 'forest-river',
+    name: 'Forest River',
+    video: '/assets/ambient/forest-river.mp4',
+    poster: '/assets/ambient/forest-river.jpg',
+  },
+  {
+    id: 'bamboo-grove',
+    name: 'Bamboo Grove',
+    video: '/assets/ambient/bamboo-grove.mp4',
+    poster: '/assets/ambient/bamboo-grove.jpg',
+  },
+  {
+    id: 'rainy-leaves',
+    name: 'Rainy Leaves',
+    video: '/assets/ambient/rainy-leaves.mp4',
+    poster: '/assets/ambient/rainy-leaves.jpg',
+  },
+  {
     id: 'minimal',
     name: 'Minimal Ambient',
     video: '/assets/ambient/minimal.mp4',

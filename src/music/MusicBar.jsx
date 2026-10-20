@@ -212,7 +212,7 @@ export default function MusicBar() {
       </div>
 
       {/* Collapsed pill */}
-      <div className="music-pill" role="region" aria-label="Music player">
+      <div className={`music-pill${playing ? ' playing' : ''}${open ? ' expanded' : ''}`} role="region" aria-label="Music player">
         <button
           type="button"
           className="pill-main"
@@ -221,7 +221,7 @@ export default function MusicBar() {
           aria-label={open ? 'Collapse music player' : 'Expand music player'}
           title={track ? track.title : 'Find your focus music'}
         >
-          <span className="pill-thumb" aria-hidden="true">
+          <span className={`pill-thumb${playing ? ' playing' : ''}`} aria-hidden="true">
             {track?.thumbnail
               ? <img src={track.thumbnail} alt="" width={34} height={34} />
               : <Music2 size={15} />}

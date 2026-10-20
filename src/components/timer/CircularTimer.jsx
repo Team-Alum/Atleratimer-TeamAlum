@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTimer } from '../../context/useTimer';
+import AnimatedTime from './AnimatedTime';
 
 export default function CircularTimer() {
   const { timerState, timerSettings } = useTimer();
@@ -112,7 +113,7 @@ export default function CircularTimer() {
         {/* Center content placed on top of SVG */}
         <div className="timer-inner-content">
           <div className="timer-mode-tag">{modeTag}</div>
-          <div className="timer-countdown-text tabular-nums">{timeString}</div>
+          <div className="timer-countdown-text tabular-nums"><AnimatedTime value={timeString} /></div>
           <div className={`timer-sub-status ${isRunning ? 'running' : ''}`}>
             <span className="status-dot-pulse" />
             <span>{subStatus}</span>

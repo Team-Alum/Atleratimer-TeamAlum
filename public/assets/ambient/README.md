@@ -22,6 +22,10 @@ thumbnails (`{id}-thumb-360-0.jpg`).
 | `snowy-pines.mp4` | [#3311](https://mixkit.co/free-stock-video/pine-branches-in-winter-3311/) | Pine branches in winter | ~3.1 MB |
 | `rainy-window.mp4` | [#21144](https://mixkit.co/free-stock-video/rain-hitting-a-window-21144/) | Rain hitting a window | ~5.4 MB |
 | `aurora.mp4` | [#4037](https://mixkit.co/free-stock-video/northern-lights-in-the-night-sky-4037/) | Northern lights in the night sky | ~2.7 MB |
+| `tranquil-forest.mp4` | [#50847](https://mixkit.co/free-stock-video/the-camera-slowly-slides-into-the-tranquil-forest-on-a-50847/) | Slow glide into a tranquil forest | ~8.0 MB |
+| `forest-river.mp4` | [#8619](https://mixkit.co/free-stock-video/sunbeams-on-flowing-river-in-mossy-forest-8619/) | Sunbeams on a flowing river in a mossy forest | ~14.6 MB |
+| `bamboo-grove.mp4` | [#20305](https://mixkit.co/free-stock-video/bamboo-in-the-sun-20305/) | Bamboo in the sun | ~5.3 MB |
+| `rainy-leaves.mp4` | [#18309](https://mixkit.co/free-stock-video/rain-wetting-the-leaves-of-a-tree-in-the-garden-18309/) | Rain wetting the leaves of a tree | ~4.8 MB |
 | `minimal.mp4` | [#50944](https://mixkit.co/free-stock-video/a-thick-mist-abundantly-flows-from-top-to-bottom-50944/) | Thick mist flowing over a dark surface | ~3.0 MB |
 
 All clips are real-time (no timelapses or speed-ramped footage) and chosen

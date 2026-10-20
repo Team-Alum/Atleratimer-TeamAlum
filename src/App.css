@@ -2330,6 +2330,286 @@
   outline-offset: 2px;
 }
 
+/* ---------- Music controls (shared mb-* widgets) --------------------------- */
+.mb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.mb-btn:hover:not(:disabled) {
+  color: var(--accent-teal);
+  border-color: var(--accent-teal);
+  transform: translateY(-1px);
+}
+
+.mb-btn:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.mb-btn:focus-visible {
+  outline: 2px solid var(--accent-teal);
+  outline-offset: 2px;
+}
+
+.mb-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.mb-btn.on {
+  color: var(--accent-teal);
+  border-color: var(--accent-teal);
+  background: var(--accent-soft);
+}
+
+.mb-btn.mb-play,
+.pill-play {
+  background: var(--accent-teal);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.mb-btn.mb-play:hover:not(:disabled),
+.pill-play:hover:not(:disabled) {
+  background: var(--accent-teal-dark);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.mb-transport {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mb-volume {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mb-time {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.mb-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #ef6a6a;
+}
+
+/* Range sliders (progress, volume, ambient dim) */
+.mb-range {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1 1 auto;
+  min-width: 60px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+}
+
+.mb-range:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.mb-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-teal);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(4, 8, 14, 0.3);
+  cursor: pointer;
+}
+
+.mb-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-teal);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(4, 8, 14, 0.3);
+  cursor: pointer;
+}
+
+/* ---------- Music island motion -------------------------------------------- */
+.music-pill {
+  transition: box-shadow 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.4, 0.5, 1), border-radius 0.25s ease;
+}
+
+.music-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(4, 8, 14, 0.42), 0 2px 8px rgba(4, 8, 14, 0.3);
+}
+
+.music-pill.playing {
+  box-shadow: 0 10px 30px rgba(4, 8, 14, 0.35), 0 0 0 1px rgba(7, 133, 150, 0.35), 0 0 26px -6px rgba(7, 133, 150, 0.5);
+}
+
+.music-pill.expanded {
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 18px;
+}
+
+/* Panel opens with staggered sections (fade + slide up) */
+.music-panel.open .mp-header,
+.music-panel.open .mp-search,
+.music-panel.open .mp-progress,
+.music-panel.open .mp-controls,
+.music-panel.open .mp-playlists {
+  animation: mp-section-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.music-panel.open .mp-header    { animation-delay: 0.03s; }
+.music-panel.open .mp-search    { animation-delay: 0.08s; }
+.music-panel.open .mp-progress  { animation-delay: 0.13s; }
+.music-panel.open .mp-controls  { animation-delay: 0.17s; }
+.music-panel.open .mp-playlists { animation-delay: 0.21s; }
+
+@keyframes mp-section-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Pulsing ring around the album art while playing */
+.pill-thumb.playing {
+  position: relative;
+}
+
+.pill-thumb.playing::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-teal);
+  animation: thumb-pulse 1.8s ease-out infinite;
+}
+
+@keyframes thumb-pulse {
+  0% { opacity: 0.75; transform: scale(0.9); }
+  70% { opacity: 0; transform: scale(1.3); }
+  100% { opacity: 0; transform: scale(1.3); }
+}
+
+/* Waveform entrance */
+.pill-waveform {
+  animation: wave-in 0.35s ease;
+}
+
+@keyframes wave-in {
+  from { opacity: 0; transform: scaleY(0.4); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- Countdown digits (fade + slide + glide) ------------------------ */
+.animated-time {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.tdigit {
+  display: inline-block;
+}
+
+.tdigit-inner {
+  display: inline-block;
+  animation: digit-in 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes digit-in {
+  0% { opacity: 0; transform: translateY(0.4em); filter: blur(3px); }
+  45% { opacity: 0.65; filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.tdigit.colon {
+  opacity: 0.7;
+  animation: colon-breathe 2s ease-in-out infinite;
+}
+
+@keyframes colon-breathe {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+/* ---------- Full-screen timer focus mode ----------------------------------- */
+.timer-focus-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 40px 20px;
+  background: rgba(6, 10, 16, 0.78);
+  backdrop-filter: blur(26px) saturate(140%);
+  -webkit-backdrop-filter: blur(26px) saturate(140%);
+  animation: focus-overlay-in 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes focus-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.timer-focus-overlay .circular-timer-container {
+  margin: 0;
+}
+
+.timer-focus-overlay .svg-ring-wrapper {
+  width: min(420px, 84vw);
+  height: min(420px, 84vw);
+}
+
+.focus-launch:focus-visible,
+.focus-exit:focus-visible {
+  outline: 2px solid var(--accent-teal);
+  outline-offset: 2px;
+}
+
+.focus-exit {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.focus-exit:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: scale(1.06);
+}
+
 /* ---------- YouTube player (audio-only) ------------------------------------ */
 /* The IFrame API needs its host in the DOM to play audio, but the video
    square is intentionally never shown — playback is audio-only. The 1px
@@ -3029,7 +3309,17 @@
   .cozy-lamp-glow,
   .forest-mist,
   .pill-waveform span,
-  .ambient-tile::after {
+  .pill-waveform,
+  .pill-thumb.playing::after,
+  .ambient-tile::after,
+  .tdigit-inner,
+  .tdigit.colon,
+  .music-panel.open .mp-header,
+  .music-panel.open .mp-search,
+  .music-panel.open .mp-progress,
+  .music-panel.open .mp-controls,
+  .music-panel.open .mp-playlists,
+  .timer-focus-overlay {
     animation: none !important;
   }
 

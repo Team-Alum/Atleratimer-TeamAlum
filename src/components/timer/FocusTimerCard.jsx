@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTimer } from '../../context/useTimer';
 import CircularTimer from './CircularTimer';
 import TimerControls from './TimerControls';
-import { BookOpen, Pencil, Check } from 'lucide-react';
+import { BookOpen, Pencil, Check, Maximize2, Minimize2 } from 'lucide-react';
 
 export default function FocusTimerCard() {
   const { timerState, timerSettings, setSessionTitle } = useTimer();
@@ -10,6 +11,37 @@ export default function FocusTimerCard() {
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(sessionTitle);
+  const [focusMode, setFocusMode] = useState(false);
+
+  // Fullscreen focus mode: Escape and native-fullscreen exit both close it.
+  // The overlay renders a second instance of the (pure, context-driven)
+  // ring + controls — the timer itself lives in TimerContext, so entering or
+  // exiting never resets or duplicates the countdown.
+  useEffect(() => {
+    if (!focusMode) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setFocusMode(false); };
+    const onFsChange = () => { if (!document.fullscreenElement) setFocusMode(false); };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('fullscreenchange', onFsChange);
+    };
+  }, [focusMode]);
+
+  const enterFocusMode = () => {
+    setFocusMode(true);
+    try {
+      document.documentElement.requestFullscreen?.()?.catch?.(() => { /* CSS overlay still covers the viewport */ });
+    } catch { /* ignore — unsupported */ }
+  };
+
+  const exitFocusMode = () => {
+    setFocusMode(false);
+    try {
+      if (document.fullscreenElement) document.exitFullscreen?.()?.catch?.(() => {});
+    } catch { /* ignore */ }
+  };
 
   const handleSaveTitle = (e) => {
     e.preventDefault();
@@ -69,6 +101,16 @@ export default function FocusTimerCard() {
           <div className={`status-badge ${isRunning ? 'in-progress' : 'in-progress'}`}>
             {isRunning ? 'In progress' : 'In progress'}
           </div>
+
+          <button
+            type="button"
+            className="edit-title-btn focus-launch"
+            onClick={enterFocusMode}
+            title="Fullscreen timer"
+            aria-label="Fullscreen timer"
+          >
+            <Maximize2 size={14} strokeWidth={2.2} />
+          </button>
         </div>
       </div>
 
@@ -77,6 +119,21 @@ export default function FocusTimerCard() {
 
       {/* Timer Controls, Presets & Ambient info */}
       <TimerControls />
+
+      {/* Fullscreen focus mode — only the timer + its controls, dark glass scrim.
+          Portaled to body so the fixed overlay is always viewport-bound. */}
+      {focusMode && createPortal(
+        <div className="timer-focus-overlay" role="dialog" aria-label="Fullscreen focus timer">
+          <button type="button" className="focus-exit" onClick={exitFocusMode} title="Exit fullscreen" aria-label="Exit fullscreen timer">
+            <Minimize2 size={18} strokeWidth={2.2} />
+          </button>
+          <div className="focus-timer-stack">
+            <CircularTimer />
+            <TimerControls />
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

@@ -1,0 +1,82 @@
+import React, { useState } from 'react';
+import { useTimer } from '../../context/useTimer';
+import CircularTimer from './CircularTimer';
+import TimerControls from './TimerControls';
+import { BookOpen, Pencil, Check } from 'lucide-react';
+
+export default function FocusTimerCard() {
+  const { timerState, timerSettings, setSessionTitle } = useTimer();
+  const { isRunning, sessionTitle } = timerState;
+
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState(sessionTitle);
+
+  const handleSaveTitle = (e) => {
+    e.preventDefault();
+    if (tempTitle.trim()) {
+      setSessionTitle(tempTitle.trim());
+    }
+    setIsEditingTitle(false);
+  };
+
+  // Format next session duration string, e.g. "NEXT 25 : 00"
+  const nextDurationStr = `NEXT  ${String(timerSettings.focusDuration).padStart(2, '0')} : 00`;
+
+  return (
+    <div className="timer-card">
+      {/* Card Header */}
+      <div className="timer-card-header">
+        <div className="session-title-group">
+          <BookOpen size={19} className="session-icon" strokeWidth={2} />
+          {isEditingTitle ? (
+            <form onSubmit={handleSaveTitle} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="text"
+                value={tempTitle}
+                onChange={(e) => setTempTitle(e.target.value)}
+                autoFocus
+                className="form-input"
+                style={{ padding: '4px 8px', fontSize: 15, width: 170 }}
+              />
+              <button type="submit" className="edit-title-btn" title="Save title">
+                <Check size={16} />
+              </button>
+            </form>
+          ) : (
+            <>
+              <span className="session-title-text">{sessionTitle}</span>
+              <button
+                className="edit-title-btn"
+                onClick={() => {
+                  setTempTitle(sessionTitle);
+                  setIsEditingTitle(true);
+                }}
+                title="Edit session title"
+                aria-label="Edit session title"
+              >
+                <Pencil size={15} strokeWidth={2} />
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="timer-card-header-right">
+          <div className="next-pill">
+            <span>{nextDurationStr}</span>
+            <Pencil size={12} strokeWidth={2.2} style={{ opacity: 0.6 }} />
+          </div>
+
+          <div className={`status-badge ${isRunning ? 'in-progress' : 'in-progress'}`}>
+            {isRunning ? 'In progress' : 'In progress'}
+          </div>
+        </div>
+      </div>
+
+      {/* SVG Circular Countdown */}
+      <CircularTimer />
+
+      {/* Timer Controls, Presets & Ambient info */}
+      <TimerControls />
+    </div>
+  );
+}

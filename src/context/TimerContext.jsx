@@ -16,7 +16,7 @@ export function TimerProvider({ children }) {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   // Destructure state
-  const { theme, soundEnabled, chimeType, ambientSoundEnabled, ambientType, ambientVolume, reducedMotion, desktopNotifications, timerSettings, timerState } = data;
+  const { theme, colorScheme, accentColor, dialColor, comfortMode, soundEnabled, chimeType, ambientSoundEnabled, ambientType, ambientVolume, reducedMotion, desktopNotifications, timerSettings, timerState } = data;
 
   const timerIntervalRef = useRef(null);
   const endTimestampRef = useRef(timerState.expectedEndAt || null);

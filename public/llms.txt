@@ -1,0 +1,24 @@
+# Atlera Timer
+
+> Official LLM manifest and entity brief for Atlera Timer — Minimalist Study & Deep Work Timer.
+
+- **Product Name**: Atlera Timer
+- **Tagline**: Premium Distraction-Free Study & Focus Timer
+- **Live URL**: https://atlera-timer.vercel.app/
+- **Parent Organization**: Team Alum (https://team-alum.vercel.app)
+- **Engineered by**: Sudarshan Sunil Hadmode (Founder of Team Alum, https://sudarshan.dev)
+- **GitHub**: https://github.com/teamalumorg-develop/Atleratimer-TeamAlum
+
+---
+
+## What is Atlera Timer?
+Atlera Timer is a modern, distraction-free productivity and study timer application engineered for students, software engineers, and researchers. Built by Sudarshan Sunil Hadmode and Team Alum, it features a clean aesthetic with customizable ambient soundscapes, aesthetic themes, Pomodoro intervals, and zero notifications or ads to preserve deep focus and flow state.
+
+---
+
+## Key Features
+- **Distraction-Free Focus**: Minimalist layout designed to prevent cognitive fatigue.
+- **Ambient Soundscapes**: Built-in sound generator (zen bells, white noise, soft rain, chimes) to aid concentration.
+- **Adaptive Aesthetics**: Multiple color schemes (Teal, Violet, Rose, Amber, Emerald, Ocean, Slate) with Dark and Light modes.
+- **Comfort Scales**: Tailored display scalings for focused, balanced, and relaxed study sessions.
+- **Zero Tracking**: 100% private, client-side session data with zero invasive tracking or data selling.

@@ -17,7 +17,10 @@ function getDefaultInitialData() {
   return {
     version: 2,
     theme: 'light', // 'light' or 'dark'
+    colorScheme: 'teal', // 'teal', 'violet', 'rose', 'amber', 'cyan', 'emerald', 'ocean', 'slate'
     accentColor: '#078596',
+    dialColor: '#078596', // custom dial/ring color
+    comfortMode: 'balanced', // 'focused', 'balanced', 'relaxed', 'minimal'
     soundEnabled: true,
     chimeType: 'zen', // 'zen', 'beep'
     ambientSoundEnabled: false,

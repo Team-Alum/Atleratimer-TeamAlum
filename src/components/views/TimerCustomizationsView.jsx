@@ -140,12 +140,13 @@ export default function TimerCustomizationsView() {
           </div>
         </div>
 
-        <div className="dial-preview" style={dialLook.vars} aria-hidden="true">
+        <div className="dial-preview" aria-hidden="true">
           <DialFace
             progress={0.68}
             strokeWidth={dialLook.strokeWidth}
             effect={dialLook.effect}
             comfort={dialLook.comfort}
+            style={dialLook.vars}
           >
             <div className="timer-mode-tag">DEEP WORK</div>
             <div className="timer-countdown-text tabular-nums">25:00</div>

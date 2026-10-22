@@ -44,7 +44,6 @@ export default function CircularTimer() {
   return (
     <div
       className="circular-timer-container"
-      style={look.vars}
       role="group"
       aria-label={`Timer countdown: ${timeString}`}
     >
@@ -53,6 +52,7 @@ export default function CircularTimer() {
         strokeWidth={look.strokeWidth}
         effect={look.effect}
         comfort={look.comfort}
+        style={look.vars}
       >
         <div className="timer-mode-tag">{modeTag}</div>
         <div className="timer-countdown-text tabular-nums"><AnimatedTime value={timeString} /></div>

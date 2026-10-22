@@ -94,9 +94,9 @@ function TimerControls() {
       {/* Bottom hint row */}
       <div className="timer-card-footer">
         <button
-          className={`ambient-toggle-btn ${data.ambientSoundEnabled ? 'active' : ''}`}
+          className={`sound-toggle-btn ${data.ambientSoundEnabled ? 'active' : ''}`}
           onClick={toggleAmbientSound}
-          title="Toggle ambient background focus sound"
+          title="Toggle ambient focus sound"
         >
           {data.ambientSoundEnabled ? (
             <Volume2 size={15} strokeWidth={2.2} />

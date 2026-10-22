@@ -11,6 +11,7 @@ export default function DialFace({
   strokeWidth = 12,
   effect = 'glow',
   comfort = 'balanced',
+  style,
   children,
 }) {
   const idPrefix = `dial-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
@@ -22,7 +23,7 @@ export default function DialFace({
   const strokeDashoffset = circumference * (1 - clamped);
 
   return (
-    <div className={`svg-ring-wrapper dial-face dial-effect--${effect} dial-comfort--${comfort}`}>
+    <div className={`svg-ring-wrapper dial-face dial-effect--${effect} dial-comfort--${comfort}`} style={style}>
       {effect === 'aurora' && <span className="dial-aurora" aria-hidden="true" />}
 
       <svg

@@ -17,7 +17,7 @@
 ## 2. Capabilities & Architecture
 - **Focus Intervals**: Configurable study timers, Pomodoro intervals, rest periods, and custom duration dials.
 - **Auditory Immersion**: Ambient background audio player featuring rain, stream, cafe, white noise, and zen interval chimes.
-- **Ergonomic Design**: Clean typography, high-contrast and low-contrast dark themes, adaptive color schemes.
+- **Ergonomic Design**: Clean typography, high-contrast and low-contrast dark themes, and dial-only colour schemes, moods, comfort levels and ring effects.
 - **Client-Side Persistence**: Preserves timer history and settings locally without requiring external accounts or exposing personal habits.
 
 ---

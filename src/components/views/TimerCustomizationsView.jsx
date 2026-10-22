@@ -2,11 +2,33 @@ import React from 'react';
 import { useTimerState, useTimerActions } from '../../context/useTimer';
 import { soundService } from '../../services/audioService';
 import { notificationService } from '../../services/notificationService';
-import { Volume2 } from 'lucide-react';
+import { Volume2, Palette } from 'lucide-react';
+import DialFace from '../timer/DialFace';
+import {
+  DIAL_SCHEMES,
+  DIAL_MOODS,
+  DIAL_COMFORT,
+  DIAL_EFFECTS,
+  DIAL_DEFAULTS,
+  getDialLook,
+  getSchemeSwatch,
+} from '../timer/dialStyle';
 
 export default function TimerCustomizationsView() {
   const { data, theme } = useTimerState();
   const { setData, toggleTheme, setActiveView } = useTimerActions();
+
+  // Dial-only appearance. Merged with the defaults so a partial/legacy payload
+  // still resolves to a complete style.
+  const dialStyle = { ...DIAL_DEFAULTS, ...(data?.dialStyle || {}) };
+  const dialLook = getDialLook(dialStyle);
+
+  const updateDial = (patch) => {
+    setData((prev) => ({
+      ...prev,
+      dialStyle: { ...DIAL_DEFAULTS, ...prev.dialStyle, ...patch },
+    }));
+  };
 
   const handleTestChime = () => {
     soundService.playCompletionChime(data.chimeType || 'zen');
@@ -30,6 +52,108 @@ export default function TimerCustomizationsView() {
 
   return (
     <div className="view-container">
+      {/* Dial Appearance Card — everything here is scoped to the circular dial */}
+      <div className="view-card dial-card">
+        <div className="dial-card-controls">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <Palette size={18} className="stat-card-icon" />
+            <h2 className="view-card-title" style={{ margin: 0 }}>Dial Appearance</h2>
+          </div>
+          <p className="view-card-desc">
+            Colour scheme, mood, comfort and colour effects for the focus dial only — the rest of
+            the workspace stays exactly as it is.
+          </p>
+
+          <div className="dial-control">
+            <div className="dial-control-head">
+              <span className="setting-label">Colour scheme</span>
+              <span className="dial-control-value">{dialLook.schemeName}</span>
+            </div>
+            <div className="dial-swatches" role="group" aria-label="Dial colour scheme">
+              {DIAL_SCHEMES.map((scheme) => (
+                <button
+                  key={scheme.id}
+                  type="button"
+                  className={`dial-swatch ${dialStyle.scheme === scheme.id ? 'active' : ''}`}
+                  style={{ backgroundImage: getSchemeSwatch(scheme.id, dialStyle.mood) }}
+                  aria-label={scheme.name}
+                  aria-pressed={dialStyle.scheme === scheme.id}
+                  title={scheme.name}
+                  onClick={() => updateDial({ scheme: scheme.id })}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="dial-control">
+            <span className="setting-label">Mood</span>
+            <div className="dial-pills" role="group" aria-label="Dial mood">
+              {DIAL_MOODS.map((mood) => (
+                <button
+                  key={mood.id}
+                  type="button"
+                  className={`preset-pill ${dialStyle.mood === mood.id ? 'active' : ''}`}
+                  aria-pressed={dialStyle.mood === mood.id}
+                  onClick={() => updateDial({ mood: mood.id })}
+                >
+                  {mood.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="dial-control">
+            <span className="setting-label">Comfort</span>
+            <div className="dial-pills" role="group" aria-label="Dial comfort">
+              {DIAL_COMFORT.map((comfort) => (
+                <button
+                  key={comfort.id}
+                  type="button"
+                  className={`preset-pill ${dialStyle.comfort === comfort.id ? 'active' : ''}`}
+                  aria-pressed={dialStyle.comfort === comfort.id}
+                  onClick={() => updateDial({ comfort: comfort.id })}
+                >
+                  {comfort.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="dial-control">
+            <span className="setting-label">Colour effect</span>
+            <div className="dial-pills" role="group" aria-label="Dial colour effect">
+              {DIAL_EFFECTS.map((effect) => (
+                <button
+                  key={effect.id}
+                  type="button"
+                  className={`preset-pill ${dialStyle.effect === effect.id ? 'active' : ''}`}
+                  aria-pressed={dialStyle.effect === effect.id}
+                  onClick={() => updateDial({ effect: effect.id })}
+                >
+                  {effect.name}
+                </button>
+              ))}
+            </div>
+            <div className="setting-help" style={{ marginTop: 8 }}>
+              Effects are drawn on the dial ring only.
+            </div>
+          </div>
+        </div>
+
+        <div className="dial-preview" style={dialLook.vars} aria-hidden="true">
+          <DialFace
+            progress={0.68}
+            strokeWidth={dialLook.strokeWidth}
+            effect={dialLook.effect}
+            comfort={dialLook.comfort}
+          >
+            <div className="timer-mode-tag">DEEP WORK</div>
+            <div className="timer-countdown-text tabular-nums">25:00</div>
+            <div className="timer-cycle-indicator">SESSION 01 / 04</div>
+          </DialFace>
+        </div>
+      </div>
+
       {/* Visual Appearance Card */}
       <div className="view-card">
         <h2 className="view-card-title">Appearance & Display</h2>

@@ -19,6 +19,6 @@ Atlera Timer is a modern, distraction-free productivity and study timer applicat
 ## Key Features
 - **Distraction-Free Focus**: Minimalist layout designed to prevent cognitive fatigue.
 - **Ambient Soundscapes**: Built-in sound generator (zen bells, white noise, soft rain, chimes) to aid concentration.
-- **Adaptive Aesthetics**: Multiple color schemes (Teal, Violet, Rose, Amber, Emerald, Ocean, Slate) with Dark and Light modes.
-- **Comfort Scales**: Tailored display scalings for focused, balanced, and relaxed study sessions.
+- **Adaptive Aesthetics**: Dial-only personalization — eight colour schemes (Teal, Cyan, Ocean, Violet, Rose, Amber, Emerald, Slate), five moods, three comfort levels and four ring effects, with Dark and Light modes for the workspace.
+- **Comfort Levels**: Compact, balanced and spacious dial presets that adjust ring weight and countdown scale without touching the rest of the interface.
 - **Zero Tracking**: 100% private, client-side session data with zero invasive tracking or data selling.

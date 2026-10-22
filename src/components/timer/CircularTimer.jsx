@@ -1,26 +1,25 @@
 import React from 'react';
 import { useTimerState, useTimerCountdown } from '../../context/useTimer';
 import AnimatedTime from './AnimatedTime';
+import DialFace from './DialFace';
+import { getDialLook } from './dialStyle';
 
 export default function CircularTimer() {
-  const { timerState, timerSettings } = useTimerState();
+  const { timerState, timerSettings, data } = useTimerState();
   const { remainingSeconds } = useTimerCountdown();
   const { totalSeconds, isRunning, mode, cycleIndex } = timerState;
+
+  // Dial-only appearance. The resolved palette is published as CSS custom
+  // properties on this container, so no other part of the app is affected.
+  const look = getDialLook(data?.dialStyle);
 
   // Format time as mm:ss
   const minutes = Math.floor(remainingSeconds / 60);
   const seconds = remainingSeconds % 60;
   const timeString = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-  // Calculate SVG stroke parameters
-  const size = 320;
-  const strokeWidth = 12;
-  const radius = (size - strokeWidth) / 2 - 10; // ~140px
-  const circumference = 2 * Math.PI * radius;
-
   // Clamp progress between 0 and 1
   const progress = totalSeconds > 0 ? Math.min(1, Math.max(0, remainingSeconds / totalSeconds)) : 0;
-  const strokeDashoffset = circumference * (1 - progress);
 
   // Mode title label
   let modeTag = 'DEEP WORK';
@@ -43,85 +42,26 @@ export default function CircularTimer() {
   const sessionCycleText = `SESSION ${currentFormatted} / ${totalFormatted}`;
 
   return (
-    <div className="circular-timer-container">
-      <div className="svg-ring-wrapper">
-        <svg
-          className="timer-svg"
-          viewBox={`0 0 ${size} ${size}`}
-          width={size}
-          height={size}
-          aria-label={`Timer countdown: ${timeString}`}
-        >
-          <defs>
-            {/* Linear gradient matching the screenshot's cyan -> teal -> violet/blue ring */}
-            <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#62DCE7" />
-              <stop offset="45%" stopColor="#078596" />
-              <stop offset="100%" stopColor="#A5B4FC" />
-            </linearGradient>
-
-            {/* Subtle glow filter */}
-            <filter id="timerGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="6" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-
-            {/* Subtle inner background gradient */}
-            <radialGradient id="innerBgGradient" cx="50%" cy="50%" r="50%">
-              <stop offset="70%" stopColor="var(--bg-card)" />
-              <stop offset="100%" stopColor="var(--surface-soft)" />
-            </radialGradient>
-          </defs>
-
-          {/* Inner circle surface */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius - strokeWidth / 2 - 4}
-            fill="url(#innerBgGradient)"
-            stroke="var(--border-subtle)"
-            strokeWidth="1"
-          />
-
-          {/* Background circle track */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="transparent"
-            stroke="var(--surface-soft)"
-            strokeWidth={strokeWidth}
-          />
-
-          {/* Active progress ring */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="transparent"
-            stroke="url(#timerGradient)"
-            strokeWidth={strokeWidth}
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            filter="url(#timerGlow)"
-            style={{
-              transition: isRunning ? 'stroke-dashoffset 0.25s linear' : 'stroke-dashoffset 0.4s ease',
-            }}
-          />
-        </svg>
-
-        {/* Center content placed on top of SVG */}
-        <div className="timer-inner-content">
-          <div className="timer-mode-tag">{modeTag}</div>
-          <div className="timer-countdown-text tabular-nums"><AnimatedTime value={timeString} /></div>
-          <div className={`timer-sub-status ${isRunning ? 'running' : ''}`}>
-            <span className="status-dot-pulse" />
-            <span>{subStatus}</span>
-          </div>
-          <div className="timer-cycle-indicator">{sessionCycleText}</div>
+    <div
+      className="circular-timer-container"
+      style={look.vars}
+      role="group"
+      aria-label={`Timer countdown: ${timeString}`}
+    >
+      <DialFace
+        progress={progress}
+        strokeWidth={look.strokeWidth}
+        effect={look.effect}
+        comfort={look.comfort}
+      >
+        <div className="timer-mode-tag">{modeTag}</div>
+        <div className="timer-countdown-text tabular-nums"><AnimatedTime value={timeString} /></div>
+        <div className={`timer-sub-status ${isRunning ? 'running' : ''}`}>
+          <span className="status-dot-pulse" />
+          <span>{subStatus}</span>
         </div>
-      </div>
+        <div className="timer-cycle-indicator">{sessionCycleText}</div>
+      </DialFace>
     </div>
   );
 }

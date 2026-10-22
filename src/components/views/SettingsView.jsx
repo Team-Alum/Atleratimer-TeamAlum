@@ -2,8 +2,7 @@ import React from 'react';
 import { useTimerState, useTimerActions } from '../../context/useTimer';
 import { storageService } from '../../services/storageService';
 import AccountSection from '../account/AccountSection';
-import { AMBIENT_SCENES } from '../../ambient/scenes';
-import { Download, Trash2, RotateCcw, Info, ShieldCheck, Music, Waves } from 'lucide-react';
+import { Download, Trash2, RotateCcw, Info, ShieldCheck, Music } from 'lucide-react';
 
 const YEAR = new Date().getFullYear();
 
@@ -12,14 +11,9 @@ export default function SettingsView() {
   const { setData, setActiveView } = useTimerActions();
 
   const musicSettings = data?.musicSettings || {};
-  const ambientSettings = data?.ambientSettings || {};
 
   const updateMusic = (patch) => {
     setData((prev) => ({ ...prev, musicSettings: { ...prev.musicSettings, ...patch } }));
-  };
-
-  const updateAmbient = (patch) => {
-    setData((prev) => ({ ...prev, ambientSettings: { ...prev.ambientSettings, ...patch } }));
   };
 
   const handleExportJSON = () => {
@@ -60,14 +54,14 @@ export default function SettingsView() {
       {/* Account & Cloud Sync */}
       <AccountSection />
 
-      {/* Music & Ambient */}
+      {/* Music */}
       <div className="view-card">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <Music size={19} className="stat-card-icon" />
-          <h2 className="view-card-title" style={{ margin: 0 }}>Music & Ambient</h2>
+          <h2 className="view-card-title" style={{ margin: 0 }}>Focus Music</h2>
         </div>
         <p className="view-card-desc">
-          Personalize the focus soundscape — music playback preferences and the ambient background behind the timer.
+          Personalize the focus soundtrack — music playback preferences for the player in your sidebar.
         </p>
 
         <div className="setting-row">
@@ -114,28 +108,6 @@ export default function SettingsView() {
             />
             <span className="toggle-slider" />
           </label>
-        </div>
-
-        <div className="setting-row">
-          <div>
-            <div className="setting-label"><Waves size={13} style={{ verticalAlign: '-2px' }} /> Default ambient background</div>
-            <div className="setting-help">The scene shown behind the focus dashboard</div>
-          </div>
-          <select
-            className="form-input"
-            style={{ width: 200 }}
-            value={ambientSettings.enabled === false ? 'off' : (ambientSettings.scene || 'starry-sky')}
-            onChange={(e) => {
-              if (e.target.value === 'off') updateAmbient({ enabled: false });
-              else updateAmbient({ scene: e.target.value, enabled: true });
-            }}
-            aria-label="Default ambient background"
-          >
-            {AMBIENT_SCENES.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-            <option value="off">Plain background (no image)</option>
-          </select>
         </div>
       </div>
 

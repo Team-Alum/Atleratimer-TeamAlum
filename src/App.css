@@ -449,7 +449,7 @@
 }
 
 .timer-countdown-text {
-  font-size: 68px;
+  font-size: var(--dial-countdown, 68px);
   font-weight: 700;
   letter-spacing: -0.04em;
   color: var(--text-primary);
@@ -490,6 +490,184 @@
   letter-spacing: 0.08em;
   color: var(--text-muted);
   text-transform: uppercase;
+}
+
+/* ---------- Dial appearance (scoped to the circular timer) --------------- */
+/* The custom properties below are set inline by CircularTimer (and by the
+   preview in Timer Customizations) from dialStyle.js. Everything in this block
+   is namespaced under .dial-face so colour schemes, moods and effects can
+   never leak into the rest of the interface. */
+.dial-face {
+  --dial-a: #62DCE7;
+  --dial-b: #078596;
+  --dial-c: #A5B4FC;
+  --dial-glow: rgba(7, 133, 150, 0.45);
+  --dial-countdown: 68px;
+}
+
+.dial-comfort--compact { --dial-countdown: 64px; }
+.dial-comfort--balanced { --dial-countdown: 68px; }
+.dial-comfort--spacious { --dial-countdown: 72px; }
+
+.dial-progress {
+  transition: stroke-dashoffset 0.3s linear;
+}
+
+.dial-effect--none .dial-progress { filter: none; }
+.dial-effect--glow .dial-progress { filter: drop-shadow(0 0 5px var(--dial-glow)); }
+.dial-effect--aurora .dial-progress { filter: drop-shadow(0 0 4px var(--dial-glow)); }
+.dial-effect--pulse .dial-progress { animation: dialPulse 2.8s ease-in-out infinite; }
+
+.dial-face .timer-mode-tag { color: var(--dial-b); }
+.dial-face .status-dot-pulse { background-color: var(--dial-b); }
+
+/* Rotating halo behind the ring. The mask keeps it on the ring itself so the
+   countdown text stays crisp. */
+.dial-aurora {
+  position: absolute;
+  inset: -1%;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--dial-a) 30deg,
+    var(--dial-b) 110deg,
+    var(--dial-c) 190deg,
+    transparent 275deg,
+    transparent 360deg
+  );
+  -webkit-mask: radial-gradient(closest-side, transparent 68%, #000 73%, #000 94%, transparent 100%);
+  mask: radial-gradient(closest-side, transparent 68%, #000 73%, #000 94%, transparent 100%);
+  opacity: 0.55;
+  filter: blur(4px);
+  animation: dialAuroraSpin 10s linear infinite;
+}
+
+.dial-face .timer-svg,
+.dial-face .timer-inner-content {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes dialPulse {
+  0%, 100% { filter: drop-shadow(0 0 3px var(--dial-glow)); }
+  50% { filter: drop-shadow(0 0 11px var(--dial-glow)); }
+}
+
+@keyframes dialAuroraSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dial-aurora,
+  .dial-effect--pulse .dial-progress {
+    animation: none;
+  }
+}
+
+/* ---------- Dial customization card -------------------------------------- */
+.dial-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px;
+  align-items: center;
+}
+
+.dial-card-controls { min-width: 0; }
+
+.dial-control { margin-top: 18px; }
+
+.dial-control-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dial-control-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.dial-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.dial-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dial-swatch:hover { transform: scale(1.08); }
+
+.dial-swatch.active {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
+.dial-swatch:focus-visible,
+.dial-pills .preset-pill:focus-visible {
+  outline: 2px solid var(--accent-teal);
+  outline-offset: 2px;
+}
+
+.dial-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dial-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dial-preview .svg-ring-wrapper {
+  width: 210px;
+  height: 210px;
+}
+
+.dial-preview .timer-countdown-text {
+  font-size: calc(var(--dial-countdown, 68px) * 0.62);
+  margin-bottom: 4px;
+}
+
+.dial-preview .timer-mode-tag,
+.dial-preview .timer-cycle-indicator {
+  font-size: 9px;
+}
+
+@media (max-width: 900px) {
+  .dial-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dial-preview { order: -1; }
+}
+
+@media (max-width: 768px) {
+  .dial-preview .svg-ring-wrapper {
+    width: 170px;
+    height: 170px;
+  }
+
+  .dial-preview .timer-countdown-text {
+    font-size: calc(var(--dial-countdown, 68px) * 0.5);
+  }
 }
 
 /* Controls Buttons */
@@ -598,28 +776,6 @@
   font-size: 12px;
   color: var(--text-muted);
   margin-top: auto;
-}
-
-.ambient-toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-}
-
-.ambient-toggle-btn:hover {
-  color: var(--accent-teal);
-  background-color: var(--accent-soft);
-}
-
-.ambient-toggle-btn.active {
-  color: var(--accent-teal);
-  font-weight: 600;
 }
 
 /* Right Stats Column */
@@ -1250,298 +1406,34 @@
 }
 
 /* ==========================================================================
-   Focus Music Player + Animated Ambient Background System
+   Focus Music Player
    ========================================================================== */
-
-/* ---------- Workspace layering ------------------------------------------- */
-.app-container {
-  padding-bottom: 68px;
-  /* Transparent so the fixed ambient stage shows through the whole app;
-     body keeps var(--bg-main) as the base color. */
-  background-color: transparent;
-}
 
 .main-workspace {
   position: relative;
   padding-bottom: 24px;
 }
 
-.main-workspace > *:not(.ambient-root) {
-  position: relative;
-  z-index: 1;
-}
-
-/* ---------- Translucent glass surfaces ----------------------------------- */
-.app-sidebar,
-.dashboard-header,
-.timer-card,
-.stat-card,
-.view-card,
+/* ---------- Frosted floating surfaces ------------------------------------- */
+/* Only the floating music surfaces stay translucent now that the ambient
+   backdrop is gone; the workspace itself is opaque again. */
 .music-pill,
 .music-panel,
 .music-drawer,
-.music-toast,
-.ambient-popover,
-.icon-button,
-.theme-toggle-pill {
-  background-color: var(--glass-bg);
+.music-toast {
+  background-color: var(--glass-bg-strong);
   border-color: var(--glass-border);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
 }
 
-/* Stronger glass for floating controls that sit over busy content */
-.music-pill,
-.music-panel,
-.music-drawer,
-.music-toast,
-.ambient-popover {
-  background-color: var(--glass-bg-strong);
-}
-
-/* Fallback when backdrop-filter is unsupported: nearly opaque surfaces */
 @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
-  .app-sidebar,
-  .dashboard-header,
-  .timer-card,
-  .stat-card,
-  .view-card,
   .music-pill,
   .music-panel,
   .music-drawer,
-  .music-toast,
-  .ambient-popover,
-  .icon-button,
-  .theme-toggle-pill {
+  .music-toast {
     background-color: var(--glass-bg-fallback);
   }
-}
-
-/* ---------- Ambient root -------------------------------------------------- */
-.ambient-root {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-  background: #05070c;
-}
-
-/* Readability dimmer in front of the scene/video (opacity set inline) */
-.ambient-dim {
-  position: absolute;
-  inset: 0;
-  background: #04070c;
-  transition: opacity 0.3s ease;
-}
-
-/* Static backdrop image for the selected scene */
-.ambient-poster {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.ambient-fallback {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(1200px 700px at 75% -10%, rgba(98, 220, 231, 0.1), transparent 60%),
-    radial-gradient(1000px 600px at 15% 115%, rgba(7, 133, 150, 0.12), transparent 65%),
-    linear-gradient(180deg, #070b12, #0a0f17 55%, #06090f);
-}
-
-/* ---------- Ambient control (header button + popover) --------------------- */
-.ambient-menu {
-  position: relative;
-  display: inline-flex;
-}
-
-.ambient-header-btn.active {
-  color: var(--accent-teal);
-  border-color: var(--accent-teal);
-}
-
-.ambient-btn-label {
-  margin-left: 2px;
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-/* Raise the header (and its popover) above the music layer while open */
-.dashboard-header:has(.ambient-popover) {
-  z-index: 66;
-}
-
-.ambient-popover {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  z-index: 80;
-  width: 300px;
-  max-width: calc(100vw - 24px);
-  padding: 14px;
-  border-radius: 18px;
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 18px 48px rgba(4, 8, 14, 0.4);
-}
-
-.ambient-title {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-
-.ambient-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  max-height: 46vh;
-  overflow-y: auto;
-  padding-right: 2px;
-}
-
-.ambient-option {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 7px;
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  background: var(--surface-soft);
-  cursor: pointer;
-  text-align: left;
-  font: inherit;
-  transition: border-color 0.15s ease;
-}
-
-.ambient-option:hover {
-  border-color: var(--text-muted);
-}
-
-.ambient-option.selected {
-  border-color: var(--accent-teal);
-  box-shadow: 0 0 0 1px var(--accent-teal);
-}
-
-/* Poster preview tile with a shimmer until the image loads */
-.ambient-tile {
-  position: relative;
-  display: block;
-  height: 46px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: linear-gradient(135deg, #101b26, #17323e);
-}
-
-.ambient-tile::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.08) 50%, transparent 70%);
-  background-size: 220% 100%;
-  animation: tile-shimmer 1.4s linear infinite;
-}
-
-.ambient-tile.loaded::after {
-  display: none;
-}
-
-.ambient-tile img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.ambient-tile.loaded img {
-  opacity: 1;
-}
-
-@keyframes tile-shimmer {
-  from { background-position: 160% 0; }
-  to { background-position: -60% 0; }
-}
-
-.ambient-name {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.ambient-option.selected .ambient-name {
-  color: var(--text-primary);
-}
-
-.ambient-check {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  color: var(--accent-teal);
-}
-
-.ambient-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.ambient-off {
-  width: 100%;
-  padding: 9px;
-  border-radius: 10px;
-  border: 1px dashed var(--border-color);
-  background: none;
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.ambient-off.selected {
-  border-style: solid;
-  border-color: var(--accent-teal);
-  color: var(--text-primary);
-}
-
-.ambient-control-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.ambient-control-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.ambient-dim-range {
-  width: 120px;
-}
-
-.ambient-note {
-  font-size: 11.5px;
-  color: var(--text-muted);
-  margin-top: 10px;
-  line-height: 1.45;
-}
-
-.ambient-off:focus-visible,
-.ambient-option:focus-visible,
-.ambient-header-btn:focus-visible {
-  outline: 2px solid var(--accent-teal);
-  outline-offset: 2px;
 }
 
 /* ---------- Mini player: root, pill, expanded panel ----------------------- */
@@ -1992,7 +1884,7 @@
   color: #ef6a6a;
 }
 
-/* Range sliders (progress, volume, ambient dim) */
+/* Range sliders (progress, volume) */
 .mb-range {
   -webkit-appearance: none;
   appearance: none;
@@ -2936,8 +2828,6 @@ html.atlera-focus-fullscreen .music-panel {
 .icon-btn:focus-visible,
 .drawer-close:focus-visible,
 .track-play:focus-visible,
-.ambient-off:focus-visible,
-.ambient-option:focus-visible,
 .playlist-tab-btn:focus-visible,
 .add-picker-item:focus-visible {
   outline: 2px solid var(--accent-teal);
@@ -3079,15 +2969,6 @@ html.atlera-focus-fullscreen .music-panel {
     padding-bottom: 24px;
   }
 
-  /* Icon-only Ambient button in the header */
-  .ambient-btn-label {
-    display: none;
-  }
-
-  .ambient-popover {
-    width: min(300px, calc(100vw - 24px));
-  }
-
   .app-sidebar {
     padding-bottom: 24px;
   }
@@ -3130,7 +3011,6 @@ html.atlera-focus-fullscreen .music-panel {
   .pill-waveform span,
   .pill-waveform,
   .pill-thumb.playing::after,
-  .ambient-tile::after,
   .tdigit-inner,
   .tdigit.colon,
   .music-panel.open .mp-header,

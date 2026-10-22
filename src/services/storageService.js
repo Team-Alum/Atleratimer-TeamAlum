@@ -38,10 +38,12 @@ function getDefaultInitialData() {
   return {
     version: 2,
     theme: 'light', // 'light' or 'dark'
-    colorScheme: 'teal', // 'teal', 'violet', 'rose', 'amber', 'cyan', 'emerald', 'ocean', 'slate'
-    accentColor: '#078596',
-    dialColor: '#078596', // custom dial/ring color
-    comfortMode: 'balanced', // 'focused', 'balanced', 'relaxed', 'minimal'
+    dialStyle: {
+      scheme: 'teal', // see src/components/timer/dialStyle.js
+      mood: 'natural',
+      comfort: 'balanced',
+      effect: 'glow',
+    },
     soundEnabled: true,
     chimeType: 'zen', // 'zen', 'beep'
     ambientSoundEnabled: false,
@@ -62,11 +64,6 @@ function getDefaultInitialData() {
       volume: 0.8,
       rememberLastPlaylist: true,
       musicOnSessionStart: false,
-    },
-    ambientSettings: {
-      scene: 'starry-sky', // static background id, see src/ambient/scenes.js
-      enabled: true,
-      dim: 0.25,     // dark readability overlay in front of the background
     },
     timerState: {
       mode: 'focus', // 'focus', 'short_break', 'long_break'
@@ -95,15 +92,14 @@ function mergeMissingDefaults(parsed, defaults) {
   return merged;
 }
 
-// Keys that no longer exist in the app. `motion` belonged to the removed live
-// ambient background; it is stripped on load so stale data does not linger.
-const LEGACY_KEYS = { ambientSettings: ['motion'] };
+// Keys that no longer exist in the app. The ambient background was replaced by
+// the dial-only appearance controls, and the old app-wide appearance keys were
+// never wired to anything, so both are dropped on load instead of lingering in
+// every saved payload.
+const LEGACY_KEYS = ['ambientSettings', 'colorScheme', 'comfortMode', 'accentColor', 'dialColor'];
 
 function stripLegacyKeys(data) {
-  for (const [group, keys] of Object.entries(LEGACY_KEYS)) {
-    if (!data[group] || typeof data[group] !== 'object') continue;
-    for (const key of keys) delete data[group][key];
-  }
+  for (const key of LEGACY_KEYS) delete data[key];
   return data;
 }
 

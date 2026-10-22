@@ -2,7 +2,6 @@ import React, { memo, useEffect, useState } from 'react';
 import { useTimerState, useTimerActions } from '../../context/useTimer';
 import { Bell, Sun, Moon, Menu } from 'lucide-react';
 import { notificationService } from '../../services/notificationService';
-import AmbientMenu from '../../ambient/AmbientMenu';
 
 // Local uppercase date, e.g. "TUESDAY, OCTOBER 20".
 function formatToday() {
@@ -120,9 +119,6 @@ function DashboardHeader({ onOpenMobileMenu }) {
             <span>Dark</span>
           </button>
         </div>
-
-        {/* Ambient background picker */}
-        <AmbientMenu />
       </div>
     </header>
   );

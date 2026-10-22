@@ -1,9 +1,9 @@
-import React from 'react';
-import { useTimer } from '../../context/useTimer';
+import React, { memo } from 'react';
+import { useTimerState } from '../../context/useTimer';
 import WeeklyActivityChart from './WeeklyActivityChart';
 
-export default function WeeklyRhythmCard() {
-  const { rhythmText } = useTimer();
+function WeeklyRhythmCard() {
+  const { rhythmText } = useTimerState();
 
   return (
     <div className="stat-card">
@@ -22,3 +22,7 @@ export default function WeeklyRhythmCard() {
     </div>
   );
 }
+
+// Memoised: this component only reads its own context subscriptions and its
+// props, so a parent re-render can skip it entirely.
+export default memo(WeeklyRhythmCard);

@@ -3,7 +3,7 @@
 // - Guest      -> localStorage (temporary, per-device)
 // The UI never talks to either backend directly — only through PlaylistContext.
 
-import { supabase } from '../services/supabaseClient';
+import { getSupabase } from '../services/supabaseClient';
 
 const LOCAL_KEY = 'atleratimer_playlists_v1';
 
@@ -66,6 +66,7 @@ const DB_SELECT = 'id, name, created_at, updated_at, playlist_tracks ( id, youtu
 export const playlistStore = {
   async list(userId) {
     if (userId) {
+      const supabase = await getSupabase();
       const { data, error } = await supabase
         .from('playlists')
         .select(DB_SELECT)
@@ -80,6 +81,7 @@ export const playlistStore = {
     const clean = sanitizePlaylistName(name);
     if (!clean) throw new Error('Playlist name can’t be empty.');
     if (userId) {
+      const supabase = await getSupabase();
       const { data, error } = await supabase
         .from('playlists')
         .insert({ user_id: userId, name: clean })
@@ -102,6 +104,7 @@ export const playlistStore = {
     const clean = sanitizePlaylistName(name);
     if (!clean) throw new Error('Playlist name can’t be empty.');
     if (userId) {
+      const supabase = await getSupabase();
       const { data, error } = await supabase
         .from('playlists')
         .update({ name: clean })
@@ -122,6 +125,7 @@ export const playlistStore = {
 
   async remove(userId, playlistId) {
     if (userId) {
+      const supabase = await getSupabase();
       const { error } = await supabase.from('playlists').delete().eq('id', playlistId);
       if (error) throw error;
       return;
@@ -134,6 +138,7 @@ export const playlistStore = {
     const clean = sanitizeTrack(track);
     if (!clean.videoId) throw new Error('That track has no valid video ID.');
     if (userId) {
+      const supabase = await getSupabase();
       const { data: existing, error: readErr } = await supabase
         .from('playlist_tracks')
         .select('id')
@@ -179,6 +184,7 @@ export const playlistStore = {
 
   async removeTrack(userId, playlistId, trackId) {
     if (userId) {
+      const supabase = await getSupabase();
       const { error } = await supabase.from('playlist_tracks').delete().eq('id', trackId);
       if (error) throw error;
       return;
@@ -194,6 +200,7 @@ export const playlistStore = {
   // orderedTrackIds must be a permutation of the playlist's current track ids
   async reorder(userId, playlistId, orderedTrackIds) {
     if (userId) {
+      const supabase = await getSupabase();
       const updates = orderedTrackIds.map((id, position) =>
         supabase.from('playlist_tracks').update({ position }).eq('id', id)
       );

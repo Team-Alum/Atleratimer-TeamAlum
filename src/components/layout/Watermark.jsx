@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 const YEAR = new Date().getFullYear();
 
 // Single source of truth for the product copyright notice
-export default function Watermark() {
+function Watermark() {
   return (
     <div className="app-watermark" role="contentinfo" aria-label="Copyright notice">
       <span>© {YEAR}</span>
@@ -19,3 +19,7 @@ export default function Watermark() {
     </div>
   );
 }
+
+// Memoised: this component only reads its own context subscriptions and its
+// props, so a parent re-render can skip it entirely.
+export default memo(Watermark);

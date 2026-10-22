@@ -1,10 +1,12 @@
 import React from 'react';
-import { useTimer } from '../../context/useTimer';
+import { useTimerState, useTimerActions, useTimerCountdown } from '../../context/useTimer';
 import { Timer, Check } from 'lucide-react';
 
 export default function SessionLogCard() {
-  const { data, timerState, setShowHistoryModal } = useTimer();
-  const { sessionTitle, remainingSeconds, isRunning } = timerState;
+  const { data, timerState } = useTimerState();
+  const { setShowHistoryModal } = useTimerActions();
+  const { remainingSeconds } = useTimerCountdown();
+  const { sessionTitle, isRunning } = timerState;
 
   // Format remaining time for live session
   const mins = Math.floor(remainingSeconds / 60);

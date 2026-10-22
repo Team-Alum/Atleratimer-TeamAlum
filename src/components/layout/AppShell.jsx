@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useTimer } from '../../context/useTimer';
+import React, { useCallback, useState } from 'react';
+import { useTimerState, useTimerActions } from '../../context/useTimer';
 import Sidebar from './Sidebar';
 import DashboardHeader from './DashboardHeader';
 import FocusSessionView from '../views/FocusSessionView';
@@ -8,13 +8,19 @@ import TimerCustomizationsView from '../views/TimerCustomizationsView';
 import SettingsView from '../views/SettingsView';
 import SessionHistoryModal from '../stats/SessionHistoryModal';
 import Watermark from './Watermark';
-import MusicBar from '../../music/MusicBar';
 import AmbientStage from '../../ambient/AmbientStage';
 import { Menu, Hourglass } from 'lucide-react';
 
 export default function AppShell() {
-  const { activeView, showHistoryModal, setShowHistoryModal } = useTimer();
+  const { activeView, showHistoryModal } = useTimerState();
+  const { setShowHistoryModal } = useTimerActions();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Stable callbacks — the children are memoised, so a new function identity
+  // on every render would defeat the memoisation.
+  const openMobileMenu = useCallback(() => setMobileMenuOpen(true), []);
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
+  const closeHistoryModal = useCallback(() => setShowHistoryModal(false), [setShowHistoryModal]);
 
   return (
     <div className="app-container">
@@ -28,7 +34,7 @@ export default function AppShell() {
         </div>
         <button
           className="icon-button"
-          onClick={() => setMobileMenuOpen(true)}
+          onClick={openMobileMenu}
           aria-label="Open navigation menu"
         >
           <Menu size={20} />
@@ -38,7 +44,7 @@ export default function AppShell() {
       {/* Responsive Sidebar */}
       <Sidebar
         isOpen={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
+        onClose={closeMobileMenu}
       />
 
       {/* Main Workspace */}
@@ -47,7 +53,7 @@ export default function AppShell() {
         <AmbientStage />
 
         <DashboardHeader
-          onOpenMobileMenu={() => setMobileMenuOpen(true)}
+          onOpenMobileMenu={openMobileMenu}
         />
 
         {/* View Switcher */}
@@ -75,11 +81,8 @@ export default function AppShell() {
       {/* Modal for full session history log */}
       <SessionHistoryModal
         isOpen={showHistoryModal}
-        onClose={() => setShowHistoryModal(false)}
+        onClose={closeHistoryModal}
       />
-
-      {/* Persistent music bar */}
-      <MusicBar />
     </div>
   );
 }

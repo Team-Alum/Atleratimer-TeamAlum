@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { useTimer } from '../../context/useTimer';
+import React, { memo, useState } from 'react';
+import { useTimerState, useTimerActions } from '../../context/useTimer';
 import { X, Download, Trash2, Check, Clock } from 'lucide-react';
 
-export default function SessionHistoryModal({ isOpen, onClose }) {
-  const { data, setData } = useTimer();
+function SessionHistoryModal({ isOpen, onClose }) {
+  const { data } = useTimerState();
+  const { setData } = useTimerActions();
   const [filter, setFilter] = useState('all'); // 'all', 'focus', 'break'
 
   if (!isOpen) return null;
@@ -138,3 +139,7 @@ export default function SessionHistoryModal({ isOpen, onClose }) {
     </div>
   );
 }
+
+// Memoised: this component only reads its own context subscriptions and its
+// props, so a parent re-render can skip it entirely.
+export default memo(SessionHistoryModal);

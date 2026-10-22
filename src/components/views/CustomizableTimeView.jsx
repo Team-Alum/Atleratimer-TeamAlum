@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { useTimer } from '../../context/useTimer';
+import { useTimerState, useTimerActions } from '../../context/useTimer';
 import { Check, RotateCcw } from 'lucide-react';
 
 export default function CustomizableTimeView() {
-  const { timerSettings, setData, setActiveView, resetTimer } = useTimer();
+  const { timerSettings } = useTimerState();
+  const { setData, setActiveView, resetTimer } = useTimerActions();
 
   const [form, setForm] = useState({
     focusDuration: timerSettings.focusDuration,

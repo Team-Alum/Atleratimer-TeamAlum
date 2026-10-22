@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTimer } from '../../context/useTimer';
+import { useTimerState, useTimerActions } from '../../context/useTimer';
 import { storageService } from '../../services/storageService';
 import AccountSection from '../account/AccountSection';
 import { AMBIENT_SCENES } from '../../ambient/scenes';
@@ -8,7 +8,8 @@ import { Download, Trash2, RotateCcw, Info, ShieldCheck, Music, Waves } from 'lu
 const YEAR = new Date().getFullYear();
 
 export default function SettingsView() {
-  const { data, setData, setActiveView } = useTimer();
+  const { data } = useTimerState();
+  const { setData, setActiveView } = useTimerActions();
 
   const musicSettings = data?.musicSettings || {};
   const ambientSettings = data?.ambientSettings || {};
@@ -133,7 +134,7 @@ export default function SettingsView() {
             {AMBIENT_SCENES.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
-            <option value="off">Static background (no animation)</option>
+            <option value="off">Plain background (no image)</option>
           </select>
         </div>
       </div>

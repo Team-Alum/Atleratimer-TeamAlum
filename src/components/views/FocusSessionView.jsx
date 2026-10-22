@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTimer } from '../../context/useTimer';
+import { useTimerState } from '../../context/useTimer';
 import FocusTimerCard from '../timer/FocusTimerCard';
 import TodayFocusCard from '../stats/TodayFocusCard';
 import WeeklyRhythmCard from '../stats/WeeklyRhythmCard';
@@ -8,7 +8,7 @@ import UpcomingSessionCards from '../cards/UpcomingSessionCards';
 import Watermark from '../layout/Watermark';
 
 export default function FocusSessionView() {
-  const { timerSettings } = useTimer();
+  const { timerSettings } = useTimerState();
 
   const footerCycleText = `${timerSettings.sessionsPerCycle} focus sessions per cycle · Long break ${timerSettings.longBreakDuration} min`;
 

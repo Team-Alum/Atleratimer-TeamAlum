@@ -1,12 +1,13 @@
 // Playlist drawer — create, rename, delete, play, and reorder playlists.
 
 import React, { useMemo, useRef, useState } from 'react';
-import { useMusic } from './MusicPlayerContext';
-import { usePlaylists } from './PlaylistContext';
+import { useMusicPlayback, useMusicActions } from './MusicPlayerContextInstance';
+import { usePlaylists } from './PlaylistContextInstance';
 import { Play, Plus, Trash2, Check, X, ListMusic, GripVertical, Loader2 } from 'lucide-react';
 
 export default function PlaylistPanel({ onClose }) {
-  const { state, actions: music } = useMusic();
+  const playback = useMusicPlayback();
+  const { actions: music } = useMusicActions();
   const {
     playlists, activeId, loading, error, isGuest, storageLabel, clearError,
     actions,
@@ -190,7 +191,7 @@ export default function PlaylistPanel({ onClose }) {
                   {active.tracks.map((track) => (
                     <li
                       key={track.id}
-                      className={`track-row${state.track?.videoId === track.videoId ? ' active' : ''}`}
+                      className={`track-row${playback.track?.videoId === track.videoId ? ' active' : ''}`}
                       draggable
                       onDragStart={() => onDragStart(track.id)}
                       onDragOver={onDragOver}

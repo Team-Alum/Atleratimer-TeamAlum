@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useTimer } from '../../context/useTimer';
+import { useTimerState } from '../../context/useTimer';
 import CircularTimer from './CircularTimer';
 import TimerControls from './TimerControls';
 import { Minimize2 } from 'lucide-react';
 
 export default function FocusFullscreen({ onExit }) {
-  const { timerState, timerSettings } = useTimer();
+  const { timerState, timerSettings } = useTimerState();
   const { mode, cycleIndex } = timerState;
 
   const modeLabel = mode === 'short_break' ? 'SHORT BREAK' : mode === 'long_break' ? 'LONG BREAK' : 'FOCUS SESSION';

@@ -1,19 +1,38 @@
-import React, { useMemo } from 'react';
-import { useTimer } from '../../context/useTimer';
+import React, { memo, useEffect, useState } from 'react';
+import { useTimerState, useTimerActions } from '../../context/useTimer';
 import { Bell, Sun, Moon, Menu } from 'lucide-react';
 import { notificationService } from '../../services/notificationService';
 import AmbientMenu from '../../ambient/AmbientMenu';
 
-export default function DashboardHeader({ onOpenMobileMenu }) {
-  const { theme, toggleTheme, activeView, data, setData } = useTimer();
+// Local uppercase date, e.g. "TUESDAY, OCTOBER 20".
+function formatToday() {
+  return new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  }).toUpperCase();
+}
 
-  // Format dynamic date in local uppercase: e.g. TUESDAY, OCTOBER 20
-  const dateStr = useMemo(() => {
-    return new Date().toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    }).toUpperCase();
+function DashboardHeader({ onOpenMobileMenu }) {
+  const { theme, activeView, data } = useTimerState();
+  const { toggleTheme, setData } = useTimerActions();
+
+  // The clock is read outside of render and refreshed once a minute, so the
+  // header rolls over at midnight instead of staying on the day the app was
+  // opened. Re-setting the same string is a no-op for React.
+  const [dateStr, setDateStr] = useState(formatToday);
+
+  useEffect(() => {
+    const tick = () => setDateStr((prev) => {
+      const next = formatToday();
+      return prev === next ? prev : next;
+    });
+    const id = setInterval(tick, 60_000);
+    window.addEventListener('focus', tick);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('focus', tick);
+    };
   }, []);
 
   const viewTitles = {
@@ -108,3 +127,7 @@ export default function DashboardHeader({ onOpenMobileMenu }) {
     </header>
   );
 }
+
+// Memoised: this component only reads its own context subscriptions and its
+// props, so a parent re-render can skip it entirely.
+export default memo(DashboardHeader);

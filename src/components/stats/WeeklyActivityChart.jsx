@@ -1,8 +1,8 @@
-import React from 'react';
-import { useTimer } from '../../context/useTimer';
+import React, { memo } from 'react';
+import { useTimerState } from '../../context/useTimer';
 
-export default function WeeklyActivityChart() {
-  const { last7DaysData } = useTimer();
+function WeeklyActivityChart() {
+  const { last7DaysData } = useTimerState();
 
   // Find maximum minutes to scale bars proportionately
   const maxMinutes = Math.max(...last7DaysData.map((d) => d.minutes), 90);
@@ -34,3 +34,7 @@ export default function WeeklyActivityChart() {
     </div>
   );
 }
+
+// Memoised: this component only reads its own context subscriptions and its
+// props, so a parent re-render can skip it entirely.
+export default memo(WeeklyActivityChart);

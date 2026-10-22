@@ -1,9 +1,11 @@
-import React from 'react';
-import { useTimer } from '../../context/useTimer';
+import React, { memo } from 'react';
+import { useTimerState, useTimerActions } from '../../context/useTimer';
+import MusicBar from '../../music/MusicBar';
 import { Timer, Sliders, Palette, Settings, Sprout, Hourglass } from 'lucide-react';
 
-export default function Sidebar({ isOpen, onClose }) {
-  const { activeView, setActiveView } = useTimer();
+function Sidebar({ isOpen, onClose }) {
+  const { activeView } = useTimerState();
+  const { setActiveView } = useTimerActions();
 
   const navItems = [
     { id: 'focus', label: 'Focus Study Session', icon: Timer },
@@ -74,6 +76,11 @@ export default function Sidebar({ isOpen, onClose }) {
           })}
         </nav>
 
+        {/* Music mini player — pinned above the footer by .sidebar-nav's auto margin */}
+        <div className="sidebar-music">
+          <MusicBar />
+        </div>
+
         {/* Sidebar Footer */}
         <div className="sidebar-footer">
           <span className="status-dot" />
@@ -83,3 +90,7 @@ export default function Sidebar({ isOpen, onClose }) {
     </>
   );
 }
+
+// Memoised: this component only reads its own context subscriptions and its
+// props, so a parent re-render can skip it entirely.
+export default memo(Sidebar);

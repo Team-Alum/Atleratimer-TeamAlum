@@ -1,19 +1,13 @@
-import React from 'react';
-import { useTimer } from '../../context/useTimer';
+import React, { memo } from 'react';
+import { useTimerState, useTimerActions, useTimerCountdown } from '../../context/useTimer';
 import { RotateCcw, Pause, Play, Coffee, VolumeX, Volume2 } from 'lucide-react';
 
-export default function TimerControls() {
-  const {
-    timerState,
-    timerSettings,
-    toggleTimer,
-    resetTimer,
-    switchPreset,
-    toggleAmbientSound,
-    data,
-  } = useTimer();
+function TimerControls() {
+  const { timerState, timerSettings, data } = useTimerState();
+  const { toggleTimer, resetTimer, switchPreset, toggleAmbientSound } = useTimerActions();
+  const { remainingSeconds } = useTimerCountdown();
 
-  const { isRunning, mode, totalSeconds, remainingSeconds } = timerState;
+  const { isRunning, mode, totalSeconds } = timerState;
 
   // Calculate elapsed time
   const elapsedSeconds = Math.max(0, totalSeconds - remainingSeconds);
@@ -119,3 +113,7 @@ export default function TimerControls() {
     </div>
   );
 }
+
+// Memoised: this component only reads its own context subscriptions and its
+// props, so a parent re-render can skip it entirely.
+export default memo(TimerControls);

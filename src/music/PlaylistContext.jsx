@@ -2,57 +2,71 @@
 // (Supabase when signed in, localStorage for guests) and this context keeps
 // the UI copy in sync after every mutation.
 
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PlaylistContext } from './PlaylistContextInstance';
 import { playlistStore, friendlyStoreError, sanitizePlaylistName } from './playlistStore';
 import { useAuth } from '../context/useAuth';
-import { useTimer } from '../context/useTimer';
-import { useMusic } from './MusicPlayerContext';
+import { useTimerState } from '../context/useTimer';
+import { useMusicActions } from './MusicPlayerContextInstance';
 
 export function PlaylistProvider({ children }) {
   const { user } = useAuth() || {};
   const userId = user?.id ?? null;
-  const { data } = useTimer();
+  const { data } = useTimerState();
   const rememberLastPlaylist = data?.musicSettings?.rememberLastPlaylist !== false;
-  const { actions: musicActions, lastPlaylist } = useMusic();
+  const { actions: musicActions, lastPlaylist } = useMusicActions();
 
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeId, setActiveId] = useState(null);
   const restoredRef = useRef(false);
+  // Guards against a slow request for a previous account overwriting the
+  // playlists of the account that is signed in now.
+  const requestRef = useRef(0);
+
+  // ---- Restore last playlist as the queue (never autoplays) ---------------
+  // Runs right after a successful load, so the saved playlist is restored
+  // together with the list it came from.
+  const restoreLastPlaylist = useCallback((list) => {
+    if (!rememberLastPlaylist || restoredRef.current || !list?.length) return;
+    restoredRef.current = true;
+    const savedId = lastPlaylist.get();
+    const saved = savedId && list.find((p) => p.id === savedId);
+    if (saved?.tracks?.length) {
+      setActiveId(saved.id);
+      musicActions.setQueue(saved.tracks, 0);
+    }
+  }, [rememberLastPlaylist, lastPlaylist, musicActions]);
 
   // ---- Load (on mount and whenever the account changes) -------------------
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const list = await playlistStore.list(userId);
-      setPlaylists(list);
-    } catch (err) {
-      setError(friendlyStoreError(err));
-      setPlaylists([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+  // The store is asynchronous, so the state updates happen in a promise
+  // callback rather than in the effect body.
+  const load = useCallback(() => {
+    const token = (requestRef.current += 1);
+    return playlistStore
+      .list(userId)
+      .then((list) => {
+        // A newer request has superseded this one — drop the stale result.
+        if (token !== requestRef.current) return;
+        setError(null);
+        setPlaylists(list);
+        restoreLastPlaylist(list);
+      })
+      .catch((err) => {
+        if (token !== requestRef.current) return;
+        setError(friendlyStoreError(err));
+        setPlaylists([]);
+      })
+      .finally(() => {
+        if (token === requestRef.current) setLoading(false);
+      });
+  }, [userId, restoreLastPlaylist]);
 
   useEffect(() => {
     restoredRef.current = false;
     load();
   }, [load]);
-
-  // ---- Restore last playlist as the queue (never autoplays) ---------------
-  useEffect(() => {
-    if (loading || !rememberLastPlaylist || restoredRef.current || !playlists.length) return;
-    restoredRef.current = true;
-    const savedId = lastPlaylist.get();
-    const saved = savedId && playlists.find((p) => p.id === savedId);
-    if (saved?.tracks?.length) {
-      setActiveId(saved.id);
-      musicActions.setQueue(saved.tracks, 0);
-    }
-  }, [loading, playlists, rememberLastPlaylist, lastPlaylist, musicActions]);
 
   const persistAndSet = useCallback(async (mutator) => {
     setError(null);
@@ -89,7 +103,7 @@ export function PlaylistProvider({ children }) {
     }
   }, [persistAndSet, userId, activeId, rememberLastPlaylist, lastPlaylist]);
 
-  // Returns 'added' | 'duplicate' | throws on failure
+  // Returns 'added' | 'duplicate', throws on failure
   const addTrackToPlaylist = useCallback(async (playlistId, track) => {
     let outcome = 'added';
     await persistAndSet(async () => {
@@ -124,6 +138,13 @@ export function PlaylistProvider({ children }) {
     [playlists, activeId]
   );
 
+  const clearError = useCallback(() => setError(null), []);
+
+  const reload = useCallback(() => {
+    setLoading(true);
+    return load();
+  }, [load]);
+
   const value = useMemo(() => ({
     playlists,
     activePlaylist,
@@ -133,7 +154,7 @@ export function PlaylistProvider({ children }) {
     isGuest: !userId,
     storageLabel: userId ? 'Saved to your account' : 'Saved on this device (guest)',
     sanitizeName: sanitizePlaylistName,
-    clearError: () => setError(null),
+    clearError,
     actions: {
       createPlaylist,
       renamePlaylist,
@@ -143,13 +164,9 @@ export function PlaylistProvider({ children }) {
       reorderPlaylist,
       selectPlaylist,
       playPlaylist,
-      reload: load,
+      reload,
     },
-  }), [playlists, activePlaylist, activeId, loading, error, userId, createPlaylist, renamePlaylist, deletePlaylist, addTrackToPlaylist, removeTrackFromPlaylist, reorderPlaylist, selectPlaylist, playPlaylist, load]);
+  }), [playlists, activePlaylist, activeId, loading, error, userId, clearError, createPlaylist, renamePlaylist, deletePlaylist, addTrackToPlaylist, removeTrackFromPlaylist, reorderPlaylist, selectPlaylist, playPlaylist, reload]);
 
   return <PlaylistContext.Provider value={value}>{children}</PlaylistContext.Provider>;
-}
-
-export function usePlaylists() {
-  return useContext(PlaylistContext);
 }

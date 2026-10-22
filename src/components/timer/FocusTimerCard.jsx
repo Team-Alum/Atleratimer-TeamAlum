@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { useTimer } from '../../context/useTimer';
+import React, { memo, useEffect, useState } from 'react';
+import { useTimerState, useTimerActions } from '../../context/useTimer';
 import CircularTimer from './CircularTimer';
 import TimerControls from './TimerControls';
 import FocusFullscreen from './FocusFullscreen';
 import { BookOpen, Pencil, Check, Maximize2 } from 'lucide-react';
 
-export default function FocusTimerCard() {
-  const { timerState, timerSettings, setSessionTitle } = useTimer();
+function FocusTimerCard() {
+  const { timerState, timerSettings } = useTimerState();
+  const { setSessionTitle } = useTimerActions();
   const { isRunning, sessionTitle } = timerState;
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -127,3 +128,7 @@ export default function FocusTimerCard() {
     </div>
   );
 }
+
+// Memoised: this component only reads its own context subscriptions and its
+// props, so a parent re-render can skip it entirely.
+export default memo(FocusTimerCard);

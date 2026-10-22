@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/useAuth';
-import { useTimer } from '../../context/useTimer';
+import { useTimerActions } from '../../context/useTimer';
 import { Cloud, CloudOff, LogIn, LogOut, RefreshCw, UserPlus } from 'lucide-react';
 
 export default function AccountSection() {
   const { isConfigured, isSignedIn, user, signUp, signIn, signOut } = useAuth();
-  const { pullFromCloud } = useTimer();
+  const { pullFromCloud } = useTimerActions();
 
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
   const [email, setEmail] = useState('');

@@ -177,6 +177,13 @@
   flex-shrink: 0;
 }
 
+/* Music mini player dock — sits between the nav and the footer, pinned to the
+   bottom of the sidebar by .sidebar-nav's `margin-bottom: auto`. */
+.sidebar-music {
+  width: 100%;
+  margin-top: 14px;
+}
+
 /* Sidebar Footer */
 .sidebar-footer {
   display: flex;
@@ -1256,7 +1263,7 @@
 
 .main-workspace {
   position: relative;
-  padding-bottom: 104px;
+  padding-bottom: 24px;
 }
 
 .main-workspace > *:not(.ambient-root) {
@@ -1320,21 +1327,6 @@
   background: #05070c;
 }
 
-/* Licensed looping video layer (one element, swapped per scene) */
-.ambient-video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  transition: opacity 0.8s ease;
-}
-
-.ambient-video.ready {
-  opacity: 1;
-}
-
 /* Readability dimmer in front of the scene/video (opacity set inline) */
 .ambient-dim {
   position: absolute;
@@ -1343,17 +1335,13 @@
   transition: opacity 0.3s ease;
 }
 
-/* Static poster shown when video is off (reduced motion / no canvas scene) */
+/* Static backdrop image for the selected scene */
 .ambient-poster {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.ambient-root.reduce-motion .ambient-video {
-  transition: none;
 }
 
 .ambient-fallback {
@@ -1363,431 +1351,6 @@
     radial-gradient(1200px 700px at 75% -10%, rgba(98, 220, 231, 0.1), transparent 60%),
     radial-gradient(1000px 600px at 15% 115%, rgba(7, 133, 150, 0.12), transparent 65%),
     linear-gradient(180deg, #070b12, #0a0f17 55%, #06090f);
-}
-
-/* ---------- Scenes: shared ------------------------------------------------ */
-.scene {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-
-.scene-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* ---------- Rainy Night --------------------------------------------------- */
-.scene-rainy .scene-sky {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, #0a0f1a 0%, #101a2b 55%, #18233a 100%);
-}
-
-.scene-skyline {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 55%;
-}
-
-.skyline-building {
-  position: absolute;
-  bottom: 0;
-  border-radius: 3px 3px 0 0;
-}
-
-.building-window {
-  position: absolute;
-  inset: 16% 22%;
-  background-image: radial-gradient(circle, rgba(255, 214, 150, 0.55) 1px, transparent 1.6px);
-  background-size: 9px 12px;
-  opacity: 0.55;
-  animation: window-flicker 7s ease-in-out infinite alternate;
-}
-
-.scene-glow.streetglow {
-  position: absolute;
-  left: 50%;
-  bottom: -6%;
-  width: 75%;
-  height: 30%;
-  transform: translateX(-50%);
-  background: radial-gradient(ellipse at center, rgba(255, 196, 130, 0.14), transparent 70%);
-}
-
-.lightning-flash {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(214, 230, 255, 0.32), rgba(214, 230, 255, 0.05) 55%, transparent 75%);
-  opacity: 0;
-  animation: lightning 26s ease-in-out infinite;
-}
-
-@keyframes lightning {
-  0%, 88%, 100% { opacity: 0; }
-  89.5% { opacity: 0.55; }
-  90.5% { opacity: 0.1; }
-  91.5% { opacity: 0.4; }
-  92.5% { opacity: 0; }
-}
-
-@keyframes window-flicker {
-  0% { opacity: 0.4; }
-  100% { opacity: 0.7; }
-}
-
-/* ---------- Night Drive --------------------------------------------------- */
-.scene-drive .scene-sky {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, #070a11 0%, #0d1526 30%, #131e33 42%, #0a0d14 60%, #07090e 100%);
-}
-
-.drive-skyline {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 58%;
-}
-
-/* ---------- Starry Sky ---------------------------------------------------- */
-.scene-starry .scene-sky {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, #04070f 0%, #0a1224 65%, #101c34 100%);
-}
-
-.star-cloud {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(148, 163, 184, 0.07);
-  filter: blur(45px);
-}
-
-.cloud-a {
-  width: 55vmax;
-  height: 20vmax;
-  top: 6%;
-  left: -18%;
-  animation: cloud-drift-a 70s ease-in-out infinite alternate;
-}
-
-.cloud-b {
-  width: 45vmax;
-  height: 16vmax;
-  top: 26%;
-  right: -22%;
-  animation: cloud-drift-b 95s ease-in-out infinite alternate;
-}
-
-@keyframes cloud-drift-a {
-  from { transform: translateX(0); }
-  to { transform: translateX(16vmax); }
-}
-
-@keyframes cloud-drift-b {
-  from { transform: translateX(0); }
-  to { transform: translateX(-14vmax); }
-}
-
-.starry-horizon {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 18%;
-  background: linear-gradient(180deg, transparent, rgba(3, 5, 10, 0.75) 55%, rgba(3, 5, 10, 0.95));
-}
-
-.starry-horizon::before,
-.starry-horizon::after {
-  content: '';
-  position: absolute;
-  bottom: 40%;
-  background: rgba(3, 5, 10, 0.85);
-  border-radius: 50%;
-}
-
-.starry-horizon::before {
-  left: -8%;
-  width: 58%;
-  height: 130%;
-}
-
-.starry-horizon::after {
-  right: -12%;
-  width: 66%;
-  height: 170%;
-}
-
-/* ---------- Cozy Room ----------------------------------------------------- */
-.scene-cozy {
-  background: linear-gradient(180deg, #171009, #1e150c 60%, #150e08);
-}
-
-.cozy-wall {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(900px 600px at 78% 30%, rgba(255, 190, 120, 0.07), transparent 65%),
-    linear-gradient(180deg, #191108, #221709 55%, #170f07);
-}
-
-.cozy-window {
-  position: absolute;
-  left: 7%;
-  top: 9%;
-  width: 36%;
-  height: 46%;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow:
-    0 0 0 8px #241708,
-    0 0 0 9px rgba(255, 205, 150, 0.12),
-    0 24px 60px rgba(0, 0, 0, 0.5);
-}
-
-.cozy-window-sky {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, #0a1322, #122036 70%, #16283f);
-}
-
-.scene-canvas.cozy-window-rain {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.cozy-window-frame {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(#241708, #241708) 50% 0 / 7px 100% no-repeat,
-    linear-gradient(#241708, #241708) 0 55% / 100% 7px no-repeat;
-}
-
-.cozy-shelf {
-  position: absolute;
-  right: 6%;
-  top: 17%;
-  width: 27%;
-  height: 10px;
-  background: linear-gradient(180deg, #35240f, #241708);
-  border-radius: 3px;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4);
-}
-
-.cozy-books {
-  position: absolute;
-  bottom: 100%;
-  left: 8%;
-  width: 46%;
-  height: 30px;
-  background: repeating-linear-gradient(90deg, #3a2814 0 8px, #4a331b 8px 15px, #2f2011 15px 23px);
-  border-radius: 2px 2px 0 0;
-}
-
-.cozy-plant {
-  position: absolute;
-  bottom: 100%;
-  right: 7%;
-  width: 32px;
-  height: 42px;
-  background:
-    radial-gradient(circle at 30% 32%, #35593a 40%, transparent 42%),
-    radial-gradient(circle at 70% 28%, #2c4c32 38%, transparent 40%),
-    radial-gradient(circle at 50% 52%, #31543a 45%, transparent 47%),
-    linear-gradient(#7a4b2b, #5e3a21) bottom center / 46% 34% no-repeat;
-}
-
-.cozy-desk {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 22%;
-  background: linear-gradient(180deg, #3a2716, #241708);
-  border-top: 3px solid #4a331d;
-}
-
-.cozy-lamp {
-  position: absolute;
-  right: 18%;
-  bottom: 22%;
-  width: 6px;
-  height: 88px;
-  background: linear-gradient(180deg, #4a3620, #2f2214);
-  border-radius: 3px;
-}
-
-.cozy-lamp-glow {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 320px;
-  height: 240px;
-  background: radial-gradient(ellipse at 50% 35%, rgba(255, 196, 120, 0.16), transparent 65%);
-  animation: lamp-breathe 7s ease-in-out infinite;
-}
-
-.cozy-lamp-head {
-  position: absolute;
-  top: -14px;
-  left: -13px;
-  width: 32px;
-  height: 18px;
-  background: #4a3620;
-  clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%);
-}
-
-.cozy-lamp-arm {
-  position: absolute;
-  top: -4px;
-  left: 5px;
-  width: 24px;
-  height: 5px;
-  background: #4a3620;
-  border-radius: 3px;
-}
-
-.cozy-mug {
-  position: absolute;
-  right: 30%;
-  bottom: 22%;
-  width: 24px;
-  height: 26px;
-  background: #d9c4a4;
-  border-radius: 4px 4px 7px 7px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
-}
-
-.cozy-mug::after {
-  content: '';
-  position: absolute;
-  right: -8px;
-  top: 6px;
-  width: 10px;
-  height: 11px;
-  border: 3px solid #d9c4a4;
-  border-left: none;
-  border-radius: 0 8px 8px 0;
-}
-
-@keyframes lamp-breathe {
-  0%, 100% { opacity: 0.82; }
-  50% { opacity: 1; }
-}
-
-/* ---------- Minimal Ambient ----------------------------------------------- */
-.scene-minimal .minimal-base {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(160deg, #0a0f14, #0d131a 50%, #0a1016);
-}
-
-.minimal-blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.5;
-  animation: blob-drift 40s ease-in-out infinite alternate;
-}
-
-.blob-a {
-  width: 46vmax;
-  height: 46vmax;
-  left: -12vmax;
-  top: -14vmax;
-  background: rgba(98, 220, 231, 0.07);
-}
-
-.blob-b {
-  width: 38vmax;
-  height: 38vmax;
-  right: -10vmax;
-  bottom: -12vmax;
-  background: rgba(7, 133, 150, 0.1);
-  animation-duration: 55s;
-  animation-direction: alternate-reverse;
-}
-
-.blob-c {
-  width: 26vmax;
-  height: 26vmax;
-  left: 42%;
-  top: 44%;
-  background: rgba(148, 163, 184, 0.06);
-  animation-duration: 66s;
-}
-
-@keyframes blob-drift {
-  from { transform: translate(0, 0) scale(1); }
-  to { transform: translate(4vmax, -3vmax) scale(1.08); }
-}
-
-/* ---------- Forest Rain (video fallback scene) ---------------------------- */
-.scene-forest {
-  background: #06120e;
-}
-
-.forest-sky {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, #06120e 0%, #0a1f16 45%, #08201a 70%, #05100c 100%);
-}
-
-.forest-mist {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(160, 196, 178, 0.05);
-  filter: blur(55px);
-}
-
-.mist-a {
-  width: 70vmax;
-  height: 18vmax;
-  top: 22%;
-  left: -20%;
-  animation: mist-drift-a 80s ease-in-out infinite alternate;
-}
-
-.mist-b {
-  width: 55vmax;
-  height: 14vmax;
-  top: 48%;
-  right: -24%;
-  animation: mist-drift-b 110s ease-in-out infinite alternate;
-}
-
-@keyframes mist-drift-a {
-  from { transform: translateX(0); }
-  to { transform: translateX(18vmax); }
-}
-
-@keyframes mist-drift-b {
-  from { transform: translateX(0); }
-  to { transform: translateX(-15vmax); }
-}
-
-.forest-treeline {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 34%;
-  background:
-    linear-gradient(180deg, transparent, rgba(3, 10, 7, 0.85) 60%, rgba(3, 10, 7, 0.97)),
-    repeating-linear-gradient(90deg, rgba(6, 22, 16, 0.9) 0 40px, rgba(9, 30, 22, 0.9) 40px 90px);
-  clip-path: polygon(0 38%, 4% 22%, 8% 40%, 12% 18%, 17% 36%, 22% 14%, 27% 34%, 32% 20%, 38% 42%, 44% 16%, 50% 34%, 56% 12%, 62% 36%, 68% 20%, 74% 40%, 80% 16%, 86% 34%, 92% 22%, 96% 38%, 100% 26%, 100% 100%, 0 100%);
 }
 
 /* ---------- Ambient control (header button + popover) --------------------- */
@@ -1982,16 +1545,15 @@
 }
 
 /* ---------- Mini player: root, pill, expanded panel ----------------------- */
+/* The collapsed pill is a normal element in the sidebar's flow. The expanded
+   panel, the playlist drawer and the error toast are portaled into <body>
+   (see MusicBar.jsx) because the sidebar is a scroll container with a
+   backdrop-filter, which would clip and re-anchor a position:fixed child. */
 .music-root {
-  position: fixed;
-  left: 50%;
-  bottom: 20px;
-  transform: translateX(-50%);
-  z-index: 60;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  width: min(460px, calc(100vw - 24px));
+  align-items: stretch;
+  width: 100%;
   pointer-events: none;
 }
 
@@ -2004,7 +1566,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: 100%;
+  width: 100%;
+  min-width: 0;
   padding: 6px 8px 6px 6px;
   border-radius: 999px;
   border: 1px solid var(--glass-border);
@@ -2017,10 +1580,11 @@
   align-items: center;
   gap: 9px;
   min-width: 0;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   background: none;
   border: none;
   padding: 2px;
+  text-align: left;
 }
 
 .pill-thumb,
@@ -2053,7 +1617,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 210px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .pill-waveform {
@@ -2096,20 +1661,25 @@
   color: #ffffff;
 }
 
-/* Expanded panel (mounted; hidden with CSS so state survives) */
+/* Expanded panel (mounted; hidden with CSS so state survives).
+   Portaled to <body>, so it is positioned against the viewport and sits above
+   the sidebar and the mobile drawer. */
 .music-panel {
-  width: min(440px, calc(100vw - 24px));
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 120;
+  width: min(380px, calc(100vw - 40px));
   max-height: min(68vh, 560px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-bottom: 10px;
   padding: 14px;
   border-radius: 22px;
   border: 1px solid var(--glass-border);
   box-shadow: 0 18px 50px rgba(4, 8, 14, 0.4);
-  transform-origin: bottom center;
+  transform-origin: bottom left;
   transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.32, 0.72, 0.26, 1), visibility 0.22s;
   opacity: 0;
   transform: translateY(14px) scale(0.92);
@@ -2317,6 +1887,17 @@
   flex-direction: column;
   gap: 8px;
   min-height: 0;
+}
+
+/* Placeholder shown while the lazily loaded search chunk is in flight.
+   It mimics the search row so the panel does not jump when it arrives. */
+.mp-search-placeholder {
+  flex: 0 0 auto;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+  opacity: 0.6;
 }
 
 .mp-search .search-results {
@@ -2874,7 +2455,7 @@ html.atlera-focus-fullscreen .music-panel {
 .music-drawer {
   position: fixed;
   bottom: 92px;
-  z-index: 70;
+  z-index: 130;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -3395,12 +2976,13 @@ html.atlera-focus-fullscreen .music-panel {
 }
 
 /* ---------- Toast --------------------------------------------------------- */
+/* Anchored bottom-right so it never collides with the music panel, which is
+   docked bottom-left. */
 .music-toast {
   position: fixed;
-  left: 50%;
-  bottom: 92px;
-  transform: translateX(-50%);
-  z-index: 75;
+  right: 20px;
+  bottom: 20px;
+  z-index: 135;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -3480,15 +3062,11 @@ html.atlera-focus-fullscreen .music-panel {
   }
 
   .music-toast {
-    bottom: 84px;
+    right: 12px;
+    bottom: 12px;
     font-size: 12.5px;
     gap: 8px;
     padding: 10px 12px;
-  }
-
-  .music-root {
-    width: calc(100vw - 20px);
-    bottom: 14px;
   }
 
   .music-panel {
@@ -3498,7 +3076,7 @@ html.atlera-focus-fullscreen .music-panel {
 
 @media (max-width: 768px) {
   .main-workspace {
-    padding-bottom: 92px;
+    padding-bottom: 24px;
   }
 
   /* Icon-only Ambient button in the header */
@@ -3511,15 +3089,21 @@ html.atlera-focus-fullscreen .music-panel {
   }
 
   .app-sidebar {
-    padding-bottom: 88px;
+    padding-bottom: 24px;
+  }
+
+  /* The music panel becomes a bottom sheet above the sidebar drawer. */
+  .music-panel {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    max-height: 70vh;
+    transform-origin: bottom center;
   }
 }
 
 @media (max-width: 560px) {
-  .pill-title {
-    max-width: 38vw;
-  }
-
   .mp-controls {
     flex-wrap: wrap;
     justify-content: center;
@@ -3558,15 +3142,7 @@ html.atlera-focus-fullscreen .music-panel {
     animation: none !important;
   }
 
-  .music-panel,
-  .ambient-video {
+  .music-panel {
     transition: none !important;
   }
-}
-
-.ambient-root.reduce-motion *,
-.ambient-root.reduce-motion *::before,
-.ambient-root.reduce-motion *::after {
-  animation: none !important;
-  transition: none !important;
 }

@@ -2,12 +2,33 @@
 
 const STORAGE_KEY = 'atleratimer_v1_data';
 
+// Trailing debounce for persistence. Settings changes usually arrive in
+// bursts (dragging a slider fires a change per pixel), so writes are
+// coalesced into one.
+const SAVE_DEBOUNCE_MS = 300;
+
 // Helper to get today's date key YYYY-MM-DD in local time
 export function getLocalDateString(d = new Date()) {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+// Move a local date key (YYYY-MM-DD) by a number of days and report the new
+// key plus its weekday index (0 = Sunday).
+//
+// The arithmetic is done in UTC on purpose: it keeps every step exactly one
+// calendar day long, so daylight-saving transitions can never shift a day
+// into the wrong bucket.
+export function getOffsetDateString(dateStr, offsetDays) {
+  const [year, month, day] = String(dateStr).split('-').map(Number);
+  const stamp = Date.UTC(year, month - 1, day) + offsetDays * 86400000;
+  const shifted = new Date(stamp);
+  return {
+    dateStr: `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, '0')}-${String(shifted.getUTCDate()).padStart(2, '0')}`,
+    dayOfWeek: shifted.getUTCDay(),
+  };
 }
 
 // Generate default initial data (clean state — no demo history)
@@ -43,9 +64,8 @@ function getDefaultInitialData() {
       musicOnSessionStart: false,
     },
     ambientSettings: {
-      scene: 'starry-sky', // 'rainy-night' (Rainy City) | 'night-drive' | 'starry-sky' | 'cozy-room' | 'forest-rain' | 'ocean-waves' | 'snowy-pines' | 'rainy-window' | 'aurora' | 'tranquil-forest' | 'forest-river' | 'bamboo-grove' | 'rainy-leaves' | 'minimal'
+      scene: 'starry-sky', // static background id, see src/ambient/scenes.js
       enabled: true,
-      motion: true,  // "disable animation" toggle in the ambient popover
       dim: 0.25,     // dark readability overlay in front of the background
     },
     timerState: {
@@ -75,6 +95,55 @@ function mergeMissingDefaults(parsed, defaults) {
   return merged;
 }
 
+// Keys that no longer exist in the app. `motion` belonged to the removed live
+// ambient background; it is stripped on load so stale data does not linger.
+const LEGACY_KEYS = { ambientSettings: ['motion'] };
+
+function stripLegacyKeys(data) {
+  for (const [group, keys] of Object.entries(LEGACY_KEYS)) {
+    if (!data[group] || typeof data[group] !== 'object') continue;
+    for (const key of keys) delete data[group][key];
+  }
+  return data;
+}
+
+// Build the payload actually written to localStorage.
+//
+// A running timer's `remainingSeconds` is deliberately dropped: the
+// authoritative value is `expectedEndAt`, and `loadData()` recomputes the
+// remaining time from it. That keeps the persisted payload byte-identical
+// while the clock is running, so the write can be skipped entirely instead of
+// serialising the whole blob on every tick.
+function toPersistable(data) {
+  const timerState = data?.timerState || {};
+  return {
+    ...data,
+    timerState: {
+      ...timerState,
+      remainingSeconds: timerState.isRunning ? 0 : (timerState.remainingSeconds || 0),
+    },
+  };
+}
+
+// --- Write bookkeeping -----------------------------------------------------
+// `lastWritten` holds the last payload handed to localStorage so repeated
+// writes of identical data are skipped. `pendingTimer`/`pendingPayload` back
+// the debounced write.
+let lastWritten = null;
+let pendingTimer = null;
+let pendingPayload = null;
+
+function commit(payload) {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  if (!payload || payload === lastWritten) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, payload);
+    lastWritten = payload;
+  } catch (e) {
+    console.warn('Failed to save to localStorage:', e);
+  }
+}
+
 export const storageService = {
   loadData() {
     try {
@@ -96,17 +165,23 @@ export const storageService = {
       }
 
       // Older v2 data may predate music/ambient settings — fill the gaps in
-      const merged = mergeMissingDefaults(parsed, getDefaultInitialData());
+      const merged = stripLegacyKeys(mergeMissingDefaults(parsed, getDefaultInitialData()));
 
       // Handle running timer if tab was closed or reloaded
-      if (merged.timerState && merged.timerState.isRunning && merged.timerState.expectedEndAt) {
-        const now = Date.now();
-        if (now >= merged.timerState.expectedEndAt) {
-          // Timer finished while page was closed
+      if (merged.timerState) {
+        const { isRunning, expectedEndAt } = merged.timerState;
+        if (isRunning && expectedEndAt) {
+          const now = Date.now();
+          if (now >= expectedEndAt) {
+            // Timer finished while page was closed
+            merged.timerState.isRunning = false;
+            merged.timerState.remainingSeconds = 0;
+          } else {
+            merged.timerState.remainingSeconds = Math.max(0, Math.ceil((expectedEndAt - now) / 1000));
+          }
+        } else if (isRunning) {
+          // Running without a deadline cannot be resumed — treat it as paused.
           merged.timerState.isRunning = false;
-          merged.timerState.remainingSeconds = 0;
-        } else {
-          merged.timerState.remainingSeconds = Math.max(0, Math.ceil((merged.timerState.expectedEndAt - now) / 1000));
         }
       }
 
@@ -117,20 +192,51 @@ export const storageService = {
     }
   },
 
+  // Write immediately.
   saveData(data) {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      }
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      pendingPayload = JSON.stringify(toPersistable(data));
+      commit(pendingPayload);
     } catch (e) {
       console.warn('Failed to save to localStorage:', e);
     }
+  },
+
+  // Write after a short idle window. Used for high-frequency updates.
+  scheduleSave(data) {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      pendingPayload = JSON.stringify(toPersistable(data));
+      if (pendingTimer) clearTimeout(pendingTimer);
+      pendingTimer = setTimeout(() => {
+        pendingTimer = null;
+        commit(pendingPayload);
+      }, SAVE_DEBOUNCE_MS);
+    } catch (e) {
+      console.warn('Failed to schedule storage save:', e);
+    }
+  },
+
+  // Write any pending payload right now (used on page hide / unload).
+  flushSave() {
+    if (pendingTimer) {
+      clearTimeout(pendingTimer);
+      pendingTimer = null;
+    }
+    commit(pendingPayload);
   },
 
   clearAllData() {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         localStorage.removeItem(STORAGE_KEY);
+      }
+      lastWritten = null;
+      pendingPayload = null;
+      if (pendingTimer) {
+        clearTimeout(pendingTimer);
+        pendingTimer = null;
       }
     } catch (e) {
       console.warn('Failed to clear storage:', e);

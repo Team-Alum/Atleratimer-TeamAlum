@@ -4,20 +4,19 @@
 // Settings persist through the existing ambientSettings store.
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useTimer } from '../context/useTimer';
+import { useTimerState, useTimerActions } from '../context/useTimer';
 import { AMBIENT_SCENES } from './scenes';
 import { Layers, Check } from 'lucide-react';
 
 export default function AmbientMenu() {
-  const { data, setData } = useTimer();
+  const { data } = useTimerState();
+  const { setData } = useTimerActions();
   const ambient = data?.ambientSettings || { scene: 'starry-sky', enabled: true };
   const [open, setOpen] = useState(false);
   const [loadedPosters, setLoadedPosters] = useState({});
   const wrapRef = useRef(null);
 
-  const reducedMotion = Boolean(data?.reducedMotion);
   const dim = typeof ambient.dim === 'number' ? ambient.dim : 0.25;
-  const animDisabled = ambient.motion === false;
 
   const setAmbient = (patch) => {
     setData((prev) => ({
@@ -87,21 +86,8 @@ export default function AmbientMenu() {
               onClick={() => setAmbient({ enabled: false })}
               aria-pressed={ambient.enabled === false}
             >
-              Static background (no animation)
+              Plain background
             </button>
-
-            <div className="ambient-control-row">
-              <span className="ambient-control-label">Disable animation</span>
-              <label className="toggle">
-                <input
-                  type="checkbox"
-                  checked={animDisabled}
-                  onChange={(e) => setAmbient({ motion: !e.target.checked })}
-                  aria-label="Disable background animation"
-                />
-                <span className="toggle-slider" />
-              </label>
-            </div>
 
             <div className="ambient-control-row">
               <span className="ambient-control-label">Dim background</span>
@@ -116,10 +102,6 @@ export default function AmbientMenu() {
               />
             </div>
           </div>
-
-          {reducedMotion && (
-            <p className="ambient-note">Reduced motion is on — backgrounds stay still.</p>
-          )}
         </div>
       )}
     </div>

@@ -5,7 +5,7 @@
 // static with a gentle pulse. Screen readers get the plain string via the
 // parent's aria-label, so the animated spans are aria-hidden.
 
-import React from 'react';
+import React, { memo } from 'react';
 
 function TickDigit({ char }) {
   return (
@@ -15,7 +15,7 @@ function TickDigit({ char }) {
   );
 }
 
-export default function AnimatedTime({ value }) {
+function AnimatedTime({ value }) {
   return (
     <span className="animated-time" aria-hidden="true">
       {value.split('').map((ch, i) => (
@@ -26,3 +26,7 @@ export default function AnimatedTime({ value }) {
     </span>
   );
 }
+
+// Memoised: this component only reads its own context subscriptions and its
+// props, so a parent re-render can skip it entirely.
+export default memo(AnimatedTime);

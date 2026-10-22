@@ -1,30 +1,115 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { TimerContext } from './TimerContextInstance';
-import { storageService, getLocalDateString } from '../services/storageService';
+import {
+  TimerStateContext,
+  TimerActionsContext,
+  TimerCountdownContext,
+} from './TimerContextInstance';
+import { storageService, getLocalDateString, getOffsetDateString } from '../services/storageService';
 import { soundService } from '../services/audioService';
 import { notificationService } from '../services/notificationService';
 import { syncService } from '../services/syncService';
 import { useAuth } from './useAuth';
 import confetti from 'canvas-confetti';
 
+// Merge cloud sessions into the local data blob. Pure: it returns the next
+// data object plus the number of sessions that were actually new. Sessions
+// that already exist locally are ignored, so pulling twice is harmless.
+function mergeRemoteSessions(prev, remote) {
+  const localIds = new Set((prev.history || []).map((h) => h.id));
+  const newOnes = remote.filter((r) => !localIds.has(r.id));
+  if (newOnes.length === 0) return { data: prev, addedCount: 0 };
+
+  const merged = [...prev.history, ...newOnes].sort((a, b) => b.timestamp - a.timestamp);
+
+  // Credit cloud focus minutes to the 7-day chart without touching local figures
+  const updatedActivity = { ...prev.dailyActivity };
+  for (const s of newOnes) {
+    if (s.type === 'focus' && s.completed) {
+      updatedActivity[s.date] = (updatedActivity[s.date] || 0) + s.durationMinutes;
+    }
+  }
+
+  return {
+    data: { ...prev, history: merged, dailyActivity: updatedActivity },
+    addedCount: newOnes.length,
+  };
+}
+
 export function TimerProvider({ children }) {
   const [data, setData] = useState(() => storageService.loadData());
   const { user } = useAuth() || {};
   const userId = user?.id ?? null;
+
+  // The live countdown lives OUTSIDE `data`.
+  //
+  // `data` is the persisted blob; it only changes when something meaningful
+  // changes (settings, history, timer mode, session title). The remaining
+  // time is a separate piece of state that advances once per second, so only
+  // the three components that display it re-render while the timer runs.
+  // Before this split the countdown was part of `data`, which meant the whole
+  // dashboard re-rendered every second and localStorage was rewritten every
+  // second.
+  const [countdown, setCountdown] = useState(() => data.timerState.remainingSeconds || 0);
+
   const [activeView, setActiveView] = useState('focus'); // 'focus', 'customizable_time', 'customizations', 'settings'
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-  // Destructure state
-  const { theme, colorScheme, accentColor, dialColor, comfortMode, soundEnabled, chimeType, ambientSoundEnabled, ambientType, ambientVolume, reducedMotion, desktopNotifications, timerSettings, timerState } = data;
+  // Latest published countdown. Written imperatively at the same time the
+  // state is updated, so the ticker can compare against it without reading a
+  // ref during render.
+  const countdownRef = useRef(countdown);
+  const publishCountdown = useCallback((seconds) => {
+    countdownRef.current = seconds;
+    setCountdown(seconds);
+  }, []);
 
+  const endTimestampRef = useRef(data.timerState.expectedEndAt || null);
   const timerIntervalRef = useRef(null);
-  const endTimestampRef = useRef(timerState.expectedEndAt || null);
 
-  // Save to localStorage when data changes
+  // Destructure state
+  const { theme, timerSettings, timerState } = data;
+  const { mode, cycleIndex, sessionTitle, isRunning } = timerState;
+  const timerTotalSeconds = timerState.totalSeconds;
+  const { focusDuration, shortBreakDuration, longBreakDuration, sessionsPerCycle } = timerSettings;
+  const { soundEnabled, chimeType, desktopNotifications, reducedMotion } = data;
+  const { ambientSoundEnabled, ambientType, ambientVolume } = data;
+
+  // The current local date. It is refreshed when the day rolls over, so the
+  // daily stats never stay frozen on the day the app was opened. Reading the
+  // clock during render would be impure, hence the state + timer.
+  const [todayStr, setTodayStr] = useState(() => getLocalDateString());
+
   useEffect(() => {
-    storageService.saveData(data);
+    const tick = () => {
+      const next = getLocalDateString();
+      setTodayStr((prev) => (prev === next ? prev : next));
+    };
+    const id = setInterval(tick, 60_000);
+    window.addEventListener('focus', tick);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('focus', tick);
+    };
+  }, []);
+
+  // --- Persistence ---------------------------------------------------------
+  // Writes are debounced and skipped when the serialised payload is
+  // unchanged, so a running timer no longer rewrites localStorage every tick.
+  useEffect(() => {
+    storageService.scheduleSave(data);
   }, [data]);
+
+  // Flush a pending write when the tab is hidden or closed.
+  useEffect(() => {
+    const flush = () => storageService.flushSave();
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', flush);
+    };
+  }, []);
 
   // Pull cloud history and merge it into local state (idempotent by session id)
   const pullFromCloud = useCallback(async () => {
@@ -34,31 +119,29 @@ export function TimerProvider({ children }) {
 
     let addedCount = 0;
     setData((prev) => {
-      const localIds = new Set((prev.history || []).map((h) => h.id));
-      const newOnes = remote.filter((r) => !localIds.has(r.id));
-      addedCount = newOnes.length;
-      if (newOnes.length === 0) return prev;
-
-      const merged = [...prev.history, ...newOnes].sort((a, b) => b.timestamp - a.timestamp);
-
-      // Credit cloud focus minutes to the 7-day chart without touching local figures
-      const updatedActivity = { ...prev.dailyActivity };
-      for (const s of newOnes) {
-        if (s.type === 'focus' && s.completed) {
-          updatedActivity[s.date] = (updatedActivity[s.date] || 0) + s.durationMinutes;
-        }
-      }
-
-      return { ...prev, history: merged, dailyActivity: updatedActivity };
+      const result = mergeRemoteSessions(prev, remote);
+      addedCount = result.addedCount;
+      return result.data;
     });
     return addedCount;
   }, [userId]);
 
-  // Auto-pull whenever the signed-in user changes
+  // Auto-pull whenever the signed-in user changes.
+  // The merge runs in a promise callback rather than in the effect body: the
+  // pull is asynchronous, and this keeps the effect from scheduling a render
+  // synchronously.
   useEffect(() => {
-    if (!userId) return;
-    pullFromCloud().catch((err) => console.warn('Cloud sync pull failed:', err));
-  }, [userId, pullFromCloud]);
+    if (!userId) return undefined;
+    let cancelled = false;
+    syncService
+      .pullSessions()
+      .then((remote) => {
+        if (cancelled || !remote?.length) return;
+        setData((prev) => mergeRemoteSessions(prev, remote).data);
+      })
+      .catch((err) => console.warn('Cloud sync pull failed:', err));
+    return () => { cancelled = true; };
+  }, [userId]);
 
   // Set HTML theme attribute
   useEffect(() => {
@@ -94,12 +177,10 @@ export function TimerProvider({ children }) {
 
   // Move to next session in Pomodoro cycle
   const handleSessionCompletion = useCallback(() => {
-    const isFocus = timerState.mode === 'focus';
-    const currentCycle = timerState.cycleIndex;
-    const maxCycles = timerSettings.sessionsPerCycle;
+    const isFocus = mode === 'focus';
     const now = new Date();
-    const todayStr = getLocalDateString(now);
-    const durationMins = Math.round(timerState.totalSeconds / 60);
+    const day = getLocalDateString(now);
+    const durationMins = Math.round(timerTotalSeconds / 60);
 
     // Play chime & send notification
     if (soundEnabled) {
@@ -116,38 +197,38 @@ export function TimerProvider({ children }) {
     }
 
     let nextMode = 'short_break';
-    let nextCycle = currentCycle;
-    let nextDurationMins = timerSettings.shortBreakDuration;
+    let nextCycle = cycleIndex;
+    let nextDurationMins = shortBreakDuration;
 
     if (isFocus) {
-      if (currentCycle >= maxCycles) {
+      if (cycleIndex >= sessionsPerCycle) {
         nextMode = 'long_break';
-        nextDurationMins = timerSettings.longBreakDuration;
+        nextDurationMins = longBreakDuration;
         triggerConfetti();
       } else {
         nextMode = 'short_break';
-        nextDurationMins = timerSettings.shortBreakDuration;
+        nextDurationMins = shortBreakDuration;
       }
     } else {
       // Break completed -> next focus session
       nextMode = 'focus';
-      nextDurationMins = timerSettings.focusDuration;
-      if (timerState.mode === 'long_break') {
+      nextDurationMins = focusDuration;
+      if (mode === 'long_break') {
         nextCycle = 1; // Restart cycle
       } else {
-        nextCycle = Math.min(maxCycles, currentCycle + 1);
+        nextCycle = Math.min(sessionsPerCycle, cycleIndex + 1);
       }
     }
 
     // New history item
     const newHistoryItem = {
       id: 'session-' + Date.now(),
-      title: timerState.sessionTitle || (isFocus ? 'Focus session' : 'Break'),
-      type: timerState.mode,
+      title: sessionTitle || (isFocus ? 'Focus session' : 'Break'),
+      type: mode,
       startTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
       durationMinutes: durationMins,
       completed: true,
-      date: todayStr,
+      date: day,
       timestamp: Date.now(),
     };
 
@@ -158,18 +239,26 @@ export function TimerProvider({ children }) {
       });
     }
 
+    const shouldAutoStart = isFocus ? timerSettings.autoStartBreaks : timerSettings.autoStartFocus;
+    const nextTotal = nextDurationMins * 60;
+    const nextEnd = shouldAutoStart ? Date.now() + nextTotal * 1000 : null;
+
+    // The deadline is owned here (and by startTimer), not by the interval
+    // effect, so the ticker can keep running straight through a session
+    // boundary when the next session auto-starts.
+    endTimestampRef.current = nextEnd;
+    publishCountdown(nextTotal);
+
     setData((prev) => {
       // Update daily focus minutes if it was a focus session
-      const currentTodayMins = (prev.dailyActivity[todayStr] || 0) + (isFocus ? durationMins : 0);
+      const currentTodayMins = (prev.dailyActivity[day] || 0) + (isFocus ? durationMins : 0);
       const updatedActivity = {
         ...prev.dailyActivity,
-        [todayStr]: currentTodayMins,
+        [day]: currentTodayMins,
       };
 
       // Update history list
       const updatedHistory = [newHistoryItem, ...prev.history];
-
-      const shouldAutoStart = isFocus ? prev.timerSettings.autoStartBreaks : prev.timerSettings.autoStartFocus;
 
       return {
         ...prev,
@@ -179,66 +268,72 @@ export function TimerProvider({ children }) {
           ...prev.timerState,
           mode: nextMode,
           cycleIndex: nextCycle,
-          remainingSeconds: nextDurationMins * 60,
-          totalSeconds: nextDurationMins * 60,
+          remainingSeconds: nextTotal,
+          totalSeconds: nextTotal,
           isRunning: shouldAutoStart,
           lastStartedAt: shouldAutoStart ? Date.now() : null,
-          expectedEndAt: shouldAutoStart ? Date.now() + nextDurationMins * 60 * 1000 : null,
+          expectedEndAt: nextEnd,
         },
       };
     });
   }, [
-    timerState.mode,
-    timerState.cycleIndex,
-    timerState.totalSeconds,
-    timerState.sessionTitle,
-    timerSettings.sessionsPerCycle,
-    timerSettings.shortBreakDuration,
-    timerSettings.longBreakDuration,
-    timerSettings.focusDuration,
+    mode,
+    cycleIndex,
+    timerTotalSeconds,
+    sessionTitle,
+    sessionsPerCycle,
+    shortBreakDuration,
+    longBreakDuration,
+    focusDuration,
+    timerSettings.autoStartBreaks,
+    timerSettings.autoStartFocus,
     soundEnabled,
     chimeType,
     desktopNotifications,
     triggerConfetti,
     userId,
+    publishCountdown,
   ]);
 
-  // Tick function using exact timestamp difference
+  // Tick function using exact timestamp difference.
+  //
+  // The ticker wakes up four times a second, but the countdown only advances
+  // once a second. Publishing every wake-up would re-render the countdown
+  // consumers four times per second for no visible gain, so a new value is
+  // only published when the displayed second actually changed.
   const tick = useCallback(() => {
-    if (!endTimestampRef.current) return;
-    const now = Date.now();
-    const remaining = Math.max(0, Math.ceil((endTimestampRef.current - now) / 1000));
+    const end = endTimestampRef.current;
+    if (!end) return;
+
+    const remaining = Math.max(0, Math.ceil((end - Date.now()) / 1000));
 
     if (remaining <= 0) {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
-      }
       handleSessionCompletion();
-    } else {
-      setData((prev) => ({
-        ...prev,
-        timerState: {
-          ...prev.timerState,
-          remainingSeconds: remaining,
-        },
-      }));
+      return;
     }
-  }, [handleSessionCompletion]);
 
-  // Interval manager
+    if (remaining === countdownRef.current) return;
+    publishCountdown(remaining);
+  }, [handleSessionCompletion, publishCountdown]);
+
+  // Interval manager.
+  //
+  // The deadline lives in `endTimestampRef` and is owned by startTimer() and
+  // handleSessionCompletion(). This effect therefore only decides whether the
+  // ticker runs — it deliberately does NOT depend on the remaining seconds,
+  // because that used to tear down and rebuild the interval every second.
   useEffect(() => {
-    if (timerState.isRunning) {
-      endTimestampRef.current = Date.now() + timerState.remainingSeconds * 1000;
-      if (!timerIntervalRef.current) {
-        timerIntervalRef.current = setInterval(tick, 250);
-      }
-    } else {
+    if (!isRunning) {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
       }
       endTimestampRef.current = null;
+      return undefined;
+    }
+
+    if (!timerIntervalRef.current) {
+      timerIntervalRef.current = setInterval(tick, 250);
     }
 
     return () => {
@@ -247,31 +342,28 @@ export function TimerProvider({ children }) {
         timerIntervalRef.current = null;
       }
     };
-  }, [timerState.isRunning, tick, timerState.remainingSeconds]);
+  }, [isRunning, tick]);
 
   // Tab visibility change handler to prevent any background drift
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && timerState.isRunning && endTimestampRef.current) {
-        const now = Date.now();
-        const remaining = Math.max(0, Math.ceil((endTimestampRef.current - now) / 1000));
-        if (remaining <= 0) {
-          handleSessionCompletion();
-        } else {
-          setData((prev) => ({
-            ...prev,
-            timerState: {
-              ...prev.timerState,
-              remainingSeconds: remaining,
-            },
-          }));
-        }
+      if (document.visibilityState !== 'visible') return;
+      if (!isRunning) return;
+
+      const end = endTimestampRef.current;
+      if (!end) return;
+
+      const remaining = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+      if (remaining <= 0) {
+        handleSessionCompletion();
+      } else if (remaining !== countdownRef.current) {
+        publishCountdown(remaining);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [timerState.isRunning, handleSessionCompletion]);
+  }, [isRunning, handleSessionCompletion, publishCountdown]);
 
   // Timer actions
   const resetTimer = useCallback((newDurationSecs = null) => {
@@ -281,97 +373,107 @@ export function TimerProvider({ children }) {
     }
     endTimestampRef.current = null;
 
-    setData((prev) => {
-      let targetTotal = newDurationSecs !== null ? newDurationSecs : prev.timerState.totalSeconds;
-      if (newDurationSecs === null) {
-        if (prev.timerState.mode === 'focus') targetTotal = prev.timerSettings.focusDuration * 60;
-        else if (prev.timerState.mode === 'short_break') targetTotal = prev.timerSettings.shortBreakDuration * 60;
-        else targetTotal = prev.timerSettings.longBreakDuration * 60;
-      }
+    let targetTotal = newDurationSecs !== null ? newDurationSecs : timerTotalSeconds;
+    if (newDurationSecs === null) {
+      if (mode === 'focus') targetTotal = focusDuration * 60;
+      else if (mode === 'short_break') targetTotal = shortBreakDuration * 60;
+      else targetTotal = longBreakDuration * 60;
+    }
 
-      return {
-        ...prev,
-        timerState: {
-          ...prev.timerState,
-          remainingSeconds: targetTotal,
-          totalSeconds: targetTotal,
-          isRunning: false,
-          lastStartedAt: null,
-          expectedEndAt: null,
-        },
-      };
-    });
-  }, []);
+    publishCountdown(targetTotal);
+    setData((p) => ({
+      ...p,
+      timerState: {
+        ...p.timerState,
+        remainingSeconds: targetTotal,
+        totalSeconds: targetTotal,
+        isRunning: false,
+        lastStartedAt: null,
+        expectedEndAt: null,
+      },
+    }));
+  }, [timerTotalSeconds, mode, focusDuration, shortBreakDuration, longBreakDuration, publishCountdown]);
 
   const startTimer = useCallback(() => {
-    setData((prev) => {
-      const remaining = prev.timerState.remainingSeconds <= 0 ? prev.timerState.totalSeconds : prev.timerState.remainingSeconds;
-      const end = Date.now() + remaining * 1000;
-      endTimestampRef.current = end;
-      return {
-        ...prev,
-        timerState: {
-          ...prev.timerState,
-          remainingSeconds: remaining,
-          isRunning: true,
-          lastStartedAt: Date.now(),
-          expectedEndAt: end,
-        },
-      };
-    });
-  }, []);
+    const current = countdownRef.current;
+    const remaining = current > 0 ? current : timerTotalSeconds;
+    const end = Date.now() + remaining * 1000;
+
+    endTimestampRef.current = end;
+    publishCountdown(remaining);
+    setData((prev) => ({
+      ...prev,
+      timerState: {
+        ...prev.timerState,
+        remainingSeconds: remaining,
+        isRunning: true,
+        lastStartedAt: Date.now(),
+        expectedEndAt: end,
+      },
+    }));
+  }, [timerTotalSeconds, publishCountdown]);
 
   const pauseTimer = useCallback(() => {
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
+
+    // Derive the remaining time from the deadline so the paused value is
+    // exact even if the last tick has not been published yet.
+    const end = endTimestampRef.current;
+    const remaining = end
+      ? Math.max(0, Math.ceil((end - Date.now()) / 1000))
+      : countdownRef.current;
+
     endTimestampRef.current = null;
+    publishCountdown(remaining);
     setData((prev) => ({
       ...prev,
       timerState: {
         ...prev.timerState,
+        remainingSeconds: remaining,
         isRunning: false,
         expectedEndAt: null,
       },
     }));
-  }, []);
+  }, [publishCountdown]);
 
   const toggleTimer = useCallback(() => {
-    if (timerState.isRunning) {
+    if (isRunning) {
       pauseTimer();
     } else {
       startTimer();
     }
-  }, [timerState.isRunning, pauseTimer, startTimer]);
+  }, [isRunning, pauseTimer, startTimer]);
 
   // Preset switch: 'focus', 'short_break', 'long_break'
-  const switchPreset = useCallback((mode) => {
+  const switchPreset = useCallback((nextMode) => {
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
     endTimestampRef.current = null;
 
-    setData((prev) => {
-      let durationMins = prev.timerSettings.focusDuration;
-      if (mode === 'short_break') durationMins = prev.timerSettings.shortBreakDuration;
-      if (mode === 'long_break') durationMins = prev.timerSettings.longBreakDuration;
+    let durationMins = focusDuration;
+    if (nextMode === 'short_break') durationMins = shortBreakDuration;
+    if (nextMode === 'long_break') durationMins = longBreakDuration;
+    const total = durationMins * 60;
 
-      return {
-        ...prev,
-        timerState: {
-          ...prev.timerState,
-          mode,
-          remainingSeconds: durationMins * 60,
-          totalSeconds: durationMins * 60,
-          isRunning: false,
-          lastStartedAt: null,
-          expectedEndAt: null,
-        },
-      };
-    });
-  }, []);
+    publishCountdown(total);
+    setData((p) => ({
+      ...p,
+      timerState: {
+        ...p.timerState,
+        mode: nextMode,
+        remainingSeconds: total,
+        totalSeconds: total,
+        isRunning: false,
+        lastStartedAt: null,
+        expectedEndAt: null,
+      },
+    }));
+  }, [focusDuration, shortBreakDuration, longBreakDuration, publishCountdown]);
 
   // Update session title
   const setSessionTitle = useCallback((title) => {
@@ -427,7 +529,6 @@ export function TimerProvider({ children }) {
   }, [toggleTimer, resetTimer]);
 
   // Derived stats
-  const todayStr = useMemo(() => getLocalDateString(), []);
   const todayFocusMinutes = data.dailyActivity[todayStr] || 0;
   const completedFocusSessionsToday = useMemo(() => {
     return (data.history || []).filter((h) => h.date === todayStr && h.type === 'focus' && h.completed).length;
@@ -438,18 +539,15 @@ export function TimerProvider({ children }) {
     const items = [];
     const daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     let totalMins = 0;
-    const baseDate = new Date();
 
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(baseDate);
-      d.setDate(baseDate.getDate() - i);
-      const dateStr = getLocalDateString(d);
+    for (let i = 6; i >= 0; i -= 1) {
+      const { dateStr, dayOfWeek } = getOffsetDateString(todayStr, -i);
       const minutes = data.dailyActivity[dateStr] || 0;
       totalMins += minutes;
 
       items.push({
         dateStr,
-        dayInitial: daysOfWeek[d.getDay()],
+        dayInitial: daysOfWeek[dayOfWeek],
         minutes,
         isToday: i === 0,
       });
@@ -461,38 +559,79 @@ export function TimerProvider({ children }) {
       last7DaysData: items,
       rhythmText: `${rhythmHours}h ${rhythmRemainingMins}m`,
     };
-  }, [data.dailyActivity]);
+  }, [data.dailyActivity, todayStr]);
+
+  // `remainingSeconds` is intentionally not part of the exposed timer state:
+  // it ticks every second and lives in its own context (useTimerCountdown).
+  const exposedTimerState = useMemo(() => {
+    const next = { ...data.timerState };
+    delete next.remainingSeconds;
+    return next;
+  }, [data.timerState]);
+
+  const stateValue = useMemo(() => ({
+    data,
+    activeView,
+    isEditingTitle,
+    showHistoryModal,
+    theme,
+    timerState: exposedTimerState,
+    timerSettings,
+    todayFocusMinutes,
+    completedFocusSessionsToday,
+    last7DaysData,
+    rhythmText,
+  }), [
+    data,
+    activeView,
+    isEditingTitle,
+    showHistoryModal,
+    theme,
+    exposedTimerState,
+    timerSettings,
+    todayFocusMinutes,
+    completedFocusSessionsToday,
+    last7DaysData,
+    rhythmText,
+  ]);
+
+  // The action callbacks below keep a stable identity between renders, so
+  // this object — and every component that only needs actions — stays put.
+  const actionsValue = useMemo(() => ({
+    setData,
+    setActiveView,
+    setIsEditingTitle,
+    setShowHistoryModal,
+    toggleTheme,
+    toggleAmbientSound,
+    setSessionTitle,
+    startTimer,
+    pauseTimer,
+    toggleTimer,
+    resetTimer,
+    switchPreset,
+    pullFromCloud,
+  }), [
+    toggleTheme,
+    toggleAmbientSound,
+    setSessionTitle,
+    startTimer,
+    pauseTimer,
+    toggleTimer,
+    resetTimer,
+    switchPreset,
+    pullFromCloud,
+  ]);
+
+  const countdownValue = useMemo(() => ({ remainingSeconds: countdown }), [countdown]);
 
   return (
-    <TimerContext.Provider
-      value={{
-        data,
-        setData,
-        activeView,
-        setActiveView,
-        isEditingTitle,
-        setIsEditingTitle,
-        showHistoryModal,
-        setShowHistoryModal,
-        theme,
-        toggleTheme,
-        timerState,
-        timerSettings,
-        startTimer,
-        pauseTimer,
-        toggleTimer,
-        resetTimer,
-        switchPreset,
-        setSessionTitle,
-        toggleAmbientSound,
-        pullFromCloud,
-        todayFocusMinutes,
-        completedFocusSessionsToday,
-        last7DaysData,
-        rhythmText,
-      }}
-    >
-      {children}
-    </TimerContext.Provider>
+    <TimerStateContext.Provider value={stateValue}>
+      <TimerActionsContext.Provider value={actionsValue}>
+        <TimerCountdownContext.Provider value={countdownValue}>
+          {children}
+        </TimerCountdownContext.Provider>
+      </TimerActionsContext.Provider>
+    </TimerStateContext.Provider>
   );
 }

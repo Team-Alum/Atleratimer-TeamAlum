@@ -1,11 +1,12 @@
 import React from 'react';
-import { useTimer } from '../../context/useTimer';
+import { useTimerState, useTimerActions } from '../../context/useTimer';
 import { soundService } from '../../services/audioService';
 import { notificationService } from '../../services/notificationService';
 import { Volume2 } from 'lucide-react';
 
 export default function TimerCustomizationsView() {
-  const { data, setData, theme, toggleTheme, setActiveView } = useTimer();
+  const { data, theme } = useTimerState();
+  const { setData, toggleTheme, setActiveView } = useTimerActions();
 
   const handleTestChime = () => {
     soundService.playCompletionChime(data.chimeType || 'zen');

@@ -1,9 +1,10 @@
-import React from 'react';
-import { useTimer } from '../../context/useTimer';
+import React, { memo } from 'react';
+import { useTimerState, useTimerActions } from '../../context/useTimer';
 import { Timer, Coffee, Flag } from 'lucide-react';
 
-export default function UpcomingSessionCards() {
-  const { timerState, timerSettings, switchPreset } = useTimer();
+function UpcomingSessionCards() {
+  const { timerState, timerSettings } = useTimerState();
+  const { switchPreset } = useTimerActions();
   const { mode, sessionTitle, cycleIndex } = timerState;
 
   const isCurrentFocusActive = mode === 'focus';
@@ -104,3 +105,7 @@ export default function UpcomingSessionCards() {
     </div>
   );
 }
+
+// Memoised: this component only reads its own context subscriptions and its
+// props, so a parent re-render can skip it entirely.
+export default memo(UpcomingSessionCards);

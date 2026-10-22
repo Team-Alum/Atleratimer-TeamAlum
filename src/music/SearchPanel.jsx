@@ -2,8 +2,8 @@
 // Queries the /api/youtube-search serverless proxy (real YouTube results).
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useMusic } from './MusicPlayerContext';
-import { usePlaylists } from './PlaylistContext';
+import { useMusicPlayback, useMusicActions } from './MusicPlayerContextInstance';
+import { usePlaylists } from './PlaylistContextInstance';
 import { formatTime } from './youtubeIframe';
 import { Search, Play, Plus, Loader2, Music2, Check } from 'lucide-react';
 
@@ -11,7 +11,8 @@ const SUGGESTIONS = ['Lo-fi study music', 'Ambient music', 'Rain sounds', 'Piano
 const clientCache = new Map(); // query -> results (session-scoped)
 
 export default function SearchSection({ inputRef }) {
-  const { state, actions, isBusy } = useMusic();
+  const playback = useMusicPlayback();
+  const { actions } = useMusicActions();
   const { playlists, actions: playlistActions } = usePlaylists();
 
   const [query, setQuery] = useState('');
@@ -114,7 +115,7 @@ export default function SearchSection({ inputRef }) {
 
       <ul className="search-results" aria-live="polite">
         {results.map((track) => (
-          <li key={track.videoId} className={`search-result${state.track?.videoId === track.videoId ? ' active' : ''}`}>
+          <li key={track.videoId} className={`search-result${playback.track?.videoId === track.videoId ? ' active' : ''}`}>
             <img src={track.thumbnail} alt="" className="result-thumb" loading="lazy" width={48} height={36} />
             <div className="result-meta">
               <span className="result-title" title={track.title}>{track.title}</span>
@@ -135,7 +136,7 @@ export default function SearchSection({ inputRef }) {
                     disabled={track.embeddable === false}
                     onClick={() => actions.playTrack(track)}
                   >
-                    {isBusy && state.track?.videoId === track.videoId ? <Loader2 size={14} className="spin" /> : <Play size={14} />}
+                    {playback.isBusy && playback.track?.videoId === track.videoId ? <Loader2 size={14} className="spin" /> : <Play size={14} />}
                   </button>
                   <button
                     type="button"

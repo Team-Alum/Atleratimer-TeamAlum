@@ -2,8 +2,12 @@
 // Exactly one YouTube IFrame player exists for the whole app; every UI piece
 // reads and mutates it through this context. Nothing here touches the timer.
 
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { MusicPlayerContext } from './MusicPlayerContextInstance';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  MusicPlaybackContext,
+  MusicProgressContext,
+  MusicActionsContext,
+} from './MusicPlayerContextInstance';
 import { loadYouTubeApi, describeYtError } from './youtubeIframe';
 
 const QUEUE_SESSION_KEY = 'atleratimer_queue_v1';
@@ -53,7 +57,12 @@ export function MusicProvider({ children }) {
   const pollRef = useRef(null);
   const interactedRef = useRef(false); // any user gesture seen (autoplay policy)
 
-  stateRef.current = state;
+  // Keep the mirror in step with the state. The YouTube callbacks read it
+  // from outside React's render cycle, so it is updated after commit rather
+  // than during render — a ref must never be mutated while rendering.
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const set = useCallback((patch) => {
     setState((prev) => ({ ...prev, ...(typeof patch === 'function' ? patch(prev) : patch) }));
@@ -357,6 +366,20 @@ export function MusicProvider({ children }) {
     if (track) playTrack(track, { queue: stateRef.current.queue, index: stateRef.current.index });
   }, [playTrack]);
 
+  const setPlayerVisible = useCallback((visible) => {
+    if (!visible) {
+      // YouTube policy: the embedded player must stay visible while it
+      // plays. Hiding the panel always pauses playback first.
+      try { playerRef.current?.pauseVideo?.(); } catch { /* ignore */ }
+    }
+    set({ playerVisible: visible });
+  }, [set]);
+
+  const setQueue = useCallback(
+    (queue, index = 0) => set({ queue, index, track: queue[index] || null }),
+    [set]
+  );
+
   // ---- remember-last-playlist helpers (used by PlaylistContext) -----------
   const lastPlaylist = useMemo(() => ({
     get: () => { try { return localStorage.getItem(LAST_PLAYLIST_KEY) || null; } catch { return null; } },
@@ -370,41 +393,77 @@ export function MusicProvider({ children }) {
     playerRef.current = null;
   }, [stopPolling]);
 
-  const value = useMemo(() => ({
-    state,
+  // ---- Context values -----------------------------------------------------
+  // The three contexts are split so that the once-per-second progress poll
+  // only re-renders the (tiny) progress readout instead of every consumer.
+
+  // Derived booleans are computed outside the memo so the memo only depends
+  // on values that actually change.
+  const canGoPrev = state.queue.length > 1 || state.currentTime > 2;
+
+  const playbackValue = useMemo(() => ({
+    track: state.track,
+    status: state.status,
+    index: state.index,
+    queue: state.queue,
+    playerVisible: state.playerVisible,
+    error: state.error,
+    repeat: state.repeat,
+    shuffle: state.shuffle,
+    volume: state.volume,
+    muted: state.muted,
+    unavailable: state.unavailable,
     isBusy: state.status === 'loading' || state.status === 'buffering',
     hasNext: state.queue.length > 1,
-    hasPrev: state.queue.length > 1 || state.currentTime > 2,
+    hasPrev: canGoPrev,
+  }), [
+    state.track,
+    state.status,
+    state.index,
+    state.queue,
+    state.playerVisible,
+    state.error,
+    state.repeat,
+    state.shuffle,
+    state.volume,
+    state.muted,
+    state.unavailable,
+    canGoPrev,
+  ]);
+
+  const progressValue = useMemo(() => ({
+    currentTime: state.currentTime,
+    duration: state.duration,
+  }), [state.currentTime, state.duration]);
+
+  const actionsValue = useMemo(() => ({
     actions: {
       playTrack, playAll, toggle, next, prev, seekFraction,
       setVolume, toggleMute, cycleRepeat, toggleShuffle,
       enqueue, removeQueued, stop, retry, clearError,
-      setPlayerVisible: (visible) => {
-        if (!visible) {
-          // YouTube policy: the embedded player must stay visible while it
-          // plays. Hiding the panel always pauses playback first.
-          try { playerRef.current?.pauseVideo?.(); } catch { /* ignore */ }
-        }
-        set({ playerVisible: visible });
-      },
-      setQueue: (queue, index = 0) => set({ queue, index, track: queue[index] || null }),
+      setPlayerVisible, setQueue,
     },
     lastPlaylist,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [state, playTrack, playAll, toggle, next, prev, seekFraction, setVolume, toggleMute, cycleRepeat, toggleShuffle, enqueue, removeQueued, stop, retry, clearError, set, lastPlaylist]);
+  }), [
+    playTrack, playAll, toggle, next, prev, seekFraction,
+    setVolume, toggleMute, cycleRepeat, toggleShuffle,
+    enqueue, removeQueued, stop, retry, clearError,
+    setPlayerVisible, setQueue, lastPlaylist,
+  ]);
 
   return (
-    <MusicPlayerContext.Provider value={value}>
-      {children}
-      {/* Persistent host for the single YouTube player instance.
-          The IFrame API replaces this div with the player, so it must never unmount. */}
-      <div className={`yt-host-wrap${state.playerVisible && state.track ? ' visible' : ''}`} aria-hidden={!state.playerVisible}>
-        <div id="atlera-yt-host" />
-      </div>
-    </MusicPlayerContext.Provider>
+    <MusicActionsContext.Provider value={actionsValue}>
+      <MusicProgressContext.Provider value={progressValue}>
+        <MusicPlaybackContext.Provider value={playbackValue}>
+          {children}
+          {/* Persistent host for the single YouTube player instance.
+              The IFrame API replaces this div with the player, so it must never unmount. */}
+          <div className={`yt-host-wrap${state.playerVisible && state.track ? ' visible' : ''}`} aria-hidden={!state.playerVisible}>
+            <div id="atlera-yt-host" />
+          </div>
+        </MusicPlaybackContext.Provider>
+      </MusicProgressContext.Provider>
+    </MusicActionsContext.Provider>
   );
 }
 
-export function useMusic() {
-  return useContext(MusicPlayerContext);
-}

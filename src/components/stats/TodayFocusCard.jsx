@@ -1,9 +1,9 @@
-import React from 'react';
-import { useTimer } from '../../context/useTimer';
+import React, { memo } from 'react';
+import { useTimerState } from '../../context/useTimer';
 import { Target } from 'lucide-react';
 
-export default function TodayFocusCard() {
-  const { todayFocusMinutes, completedFocusSessionsToday, timerSettings } = useTimer();
+function TodayFocusCard() {
+  const { todayFocusMinutes, completedFocusSessionsToday, timerSettings } = useTimerState();
 
   const goalMinutes = timerSettings.dailyGoalMinutes || 100;
   const progressPercent = Math.min(100, Math.round((todayFocusMinutes / goalMinutes) * 100));
@@ -49,3 +49,7 @@ export default function TodayFocusCard() {
     </div>
   );
 }
+
+// Memoised: this component only reads its own context subscriptions and its
+// props, so a parent re-render can skip it entirely.
+export default memo(TodayFocusCard);

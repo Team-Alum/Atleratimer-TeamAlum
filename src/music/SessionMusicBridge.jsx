@@ -4,19 +4,20 @@
 // Pausing music never pauses the timer and vice versa — they share no state.
 
 import { useEffect, useRef } from 'react';
-import { useTimer } from '../context/useTimer';
-import { useMusic } from './MusicPlayerContext';
+import { useTimerState } from '../context/useTimer';
+import { useMusicPlayback, useMusicActions } from './MusicPlayerContextInstance';
 
 export default function SessionMusicBridge() {
-  const { timerState, data } = useTimer();
-  const { state, actions } = useMusic();
+  const { timerState, data } = useTimerState();
+  const playback = useMusicPlayback();
+  const { actions } = useMusicActions();
   const musicSettings = data?.musicSettings || {};
   const wasRunningRef = useRef(timerState.isRunning);
 
   // Keep the player in sync with the saved default volume
   useEffect(() => {
     const target = typeof musicSettings.volume === 'number' ? musicSettings.volume : 0.8;
-    if (Math.abs(target - state.volume) > 0.01) {
+    if (Math.abs(target - playback.volume) > 0.01) {
       actions.setVolume(target);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -29,11 +30,11 @@ export default function SessionMusicBridge() {
     const started = timerState.isRunning && !wasRunningRef.current;
     wasRunningRef.current = timerState.isRunning;
     if (!started || !musicSettings.musicOnSessionStart) return;
-    if (timerState.mode !== 'focus' || !state.queue.length) return;
-    if (state.status === 'idle' || state.status === 'ended') {
-      if (state.track) actions.toggle();
-      else actions.playAll(state.queue, 0);
-    } else if (state.status === 'paused') {
+    if (timerState.mode !== 'focus' || !playback.queue.length) return;
+    if (playback.status === 'idle' || playback.status === 'ended') {
+      if (playback.track) actions.toggle();
+      else actions.playAll(playback.queue, 0);
+    } else if (playback.status === 'paused') {
       actions.toggle();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

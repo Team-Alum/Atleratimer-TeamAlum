@@ -1,10 +1,11 @@
 import React from 'react';
-import { useTimer } from '../../context/useTimer';
+import { useTimerState, useTimerCountdown } from '../../context/useTimer';
 import AnimatedTime from './AnimatedTime';
 
 export default function CircularTimer() {
-  const { timerState, timerSettings } = useTimer();
-  const { remainingSeconds, totalSeconds, isRunning, mode, cycleIndex } = timerState;
+  const { timerState, timerSettings } = useTimerState();
+  const { remainingSeconds } = useTimerCountdown();
+  const { totalSeconds, isRunning, mode, cycleIndex } = timerState;
 
   // Format time as mm:ss
   const minutes = Math.floor(remainingSeconds / 60);

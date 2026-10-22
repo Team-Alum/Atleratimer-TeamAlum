@@ -11,8 +11,8 @@
 
 /* Sidebar */
 .app-sidebar {
-  width: 254px;
-  min-width: 254px;
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
   background-color: var(--bg-sidebar);
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -545,9 +545,15 @@
   animation: dialAuroraSpin 10s linear infinite;
 }
 
-.dial-face .timer-svg,
-.dial-face .timer-inner-content {
+.dial-face .timer-svg {
   position: relative;
+  z-index: 1;
+}
+
+/* Keep the text overlay absolutely positioned over the ring; only raise it
+   above the aurora halo. Making it an in-flow flex item pushes it beside the
+   SVG and overflows the dial wrapper. */
+.dial-face .timer-inner-content {
   z-index: 1;
 }
 
@@ -570,8 +576,9 @@
 /* ---------- Dial customization card -------------------------------------- */
 .dial-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 32px;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+  column-gap: 40px;
+  row-gap: 28px;
   align-items: center;
 }
 
@@ -632,41 +639,61 @@
 
 .dial-preview {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
 }
 
-.dial-preview .svg-ring-wrapper {
-  width: 210px;
-  height: 210px;
+/* The preview dial is fluid: it keeps a 1:1 aspect ratio and can never grow
+   wider than its grid column. */
+.dial-preview .dial-face {
+  width: min(100%, 300px);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  container-type: inline-size;
 }
 
 .dial-preview .timer-countdown-text {
-  font-size: calc(var(--dial-countdown, 68px) * 0.62);
-  margin-bottom: 4px;
+  font-size: clamp(28px, 16cqw, 48px);
+  margin-bottom: 6px;
 }
 
 .dial-preview .timer-mode-tag,
 .dial-preview .timer-cycle-indicator {
-  font-size: 9px;
+  font-size: clamp(8px, 3.6cqw, 11px);
 }
 
-@media (max-width: 900px) {
+.dial-preview-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.dial-preview-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 14%, transparent);
+}
+
+/* Single column: controls first, then a centered, contained preview. */
+@media (max-width: 960px) {
   .dial-card {
     grid-template-columns: minmax(0, 1fr);
   }
-
-  .dial-preview { order: -1; }
 }
 
-@media (max-width: 768px) {
-  .dial-preview .svg-ring-wrapper {
-    width: 170px;
-    height: 170px;
-  }
-
-  .dial-preview .timer-countdown-text {
-    font-size: calc(var(--dial-countdown, 68px) * 0.5);
+@media (max-width: 480px) {
+  .dial-preview .dial-face {
+    width: min(100%, 240px);
   }
 }
 
@@ -1577,13 +1604,14 @@
 
 /* Expanded panel (mounted; hidden with CSS so state survives).
    Portaled to <body>, so it is positioned against the viewport and sits above
-   the sidebar and the mobile drawer. */
+   the sidebar and the mobile drawer. On desktop it clears the sidebar instead
+   of covering its navigation. */
 .music-panel {
   position: fixed;
-  left: 20px;
+  left: calc(var(--sidebar-width, 254px) + 20px);
   bottom: 20px;
   z-index: 120;
-  width: min(380px, calc(100vw - 40px));
+  width: min(380px, calc(100vw - var(--sidebar-width, 254px) - 40px));
   max-height: min(68vh, 560px);
   overflow-y: auto;
   display: flex;
@@ -2999,7 +3027,7 @@ html.atlera-focus-fullscreen .music-panel {
   .music-panel {
     left: 12px;
     right: 12px;
-    bottom: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     width: auto;
     max-height: 70vh;
     transform-origin: bottom center;

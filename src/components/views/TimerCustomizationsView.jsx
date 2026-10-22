@@ -22,6 +22,7 @@ export default function TimerCustomizationsView() {
   // still resolves to a complete style.
   const dialStyle = { ...DIAL_DEFAULTS, ...(data?.dialStyle || {}) };
   const dialLook = getDialLook(dialStyle);
+  const moodName = DIAL_MOODS.find((mood) => mood.id === dialLook.mood)?.name || dialLook.mood;
 
   const updateDial = (patch) => {
     setData((prev) => ({
@@ -152,6 +153,13 @@ export default function TimerCustomizationsView() {
             <div className="timer-countdown-text tabular-nums">25:00</div>
             <div className="timer-cycle-indicator">SESSION 01 / 04</div>
           </DialFace>
+          <div className="dial-preview-label">
+            <span
+              className="dial-preview-dot"
+              style={{ backgroundColor: dialLook.stops[1], color: dialLook.stops[1] }}
+            />
+            <span>{dialLook.schemeName} · {moodName} mood</span>
+          </div>
         </div>
       </div>
 

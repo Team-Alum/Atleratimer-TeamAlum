@@ -1,130 +1,316 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
+/* ==========================================================================
+   Design tokens
+   --------------------------------------------------------------------------
+   Static tokens (spacing, type, radii, motion, layering) live here. Colour
+   tokens are published on <html> by src/theme/atmospheres.js; the values in
+   this file are a complete, readable fallback for the first paint before the
+   appearance cache is applied. Both sets of names are kept: the `--bg-*`,
+   `--text-*`, `--accent-*` names are the legacy API used by App.css, while the
+   semantic `--surface-*`, `--accent-primary` names describe intent.
+   ========================================================================== */
 :root {
-  /* Light Theme Tokens */
-  --bg-main: #F5F7FA;
-  --bg-sidebar: #FFFFFF;
-  --bg-card: #FFFFFF;
-  --text-primary: #1E293B;
-  --text-secondary: #64748B;
-  --text-muted: #94A3B8;
-  --accent-teal: #078596;
-  --accent-teal-dark: #066D7B;
-  --accent-cyan: #62DCE7;
-  --accent-soft: #E1F4F5;
-  --accent-soft-hover: #D1EFF0;
-  --border-color: #E7ECF2;
-  --border-subtle: #F1F4F8;
-  --surface-soft: #F1F5F9;
-  --surface-quote: #EBF4F6;
-  --completed-bg: #DDF2F3;
-  --chart-bar-inactive: #C5DEE3;
-  --chart-bar-active: #078596;
-  --card-radius: 24px;
-  --card-shadow: 0 4px 24px -2px rgba(15, 23, 42, 0.04), 0 2px 8px -2px rgba(15, 23, 42, 0.02);
+  /* Type */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-2xs: 10px;
+  --text-xs: 11.5px;
+  --text-sm: 12.5px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 22px;
+  --text-2xl: 30px;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+  --tracking-tight: -0.02em;
+  --tracking-tighter: -0.03em;
+  --tracking-wide: 0.08em;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Radii */
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-card: 24px;
+  --radius-pill: 9999px;
+
+  /* Motion */
+  --duration-fast: 140ms;
+  --duration-base: 220ms;
+  --duration-slow: 420ms;
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --transition-speed: 0.15s;
+
+  /* Layers */
+  --z-ambient: 0;
+  --z-base: 1;
+  --z-header: 20;
+  --z-mobile-bar: 40;
+  --z-sidebar: 50;
+  --z-backdrop: 90;
+  --z-overlay: 100;
+  --z-panel: 120;
+  --z-toast: 135;
+
+  /* Layout */
   --sidebar-width: 254px;
-  /* Frosted surfaces for floating music panels */
-  --glass-bg: rgba(255, 255, 255, 0.4);
-  --glass-bg-strong: rgba(255, 255, 255, 0.58);
-  --glass-bg-fallback: rgba(250, 252, 255, 0.94);
-  --glass-border: rgba(15, 23, 42, 0.08);
-  --glass-blur: blur(16px) saturate(140%);
+  --content-max: 1560px;
+
+  /* --- Fallback palette: Aurora light ------------------------------------ */
+  --bg-main: #F2F7FA;
+  --bg-sidebar: #FBFDFF;
+  --bg-card: #FFFFFF;
+  --text-primary: #0E1B26;
+  --text-secondary: #55646F;
+  --text-muted: #5F6E7A;
+  --accent-teal: #067E8C;
+  --accent-teal-dark: #056672;
+  --accent-cyan: #5CD6E8;
+  --accent-soft: rgba(6, 126, 140, 0.10);
+  --accent-soft-hover: rgba(6, 126, 140, 0.16);
+  --border-color: rgba(14, 27, 38, 0.12);
+  --border-subtle: rgba(14, 27, 38, 0.065);
+  --surface-soft: #F4F6F7;
+  --surface-quote: #EAF6F7;
+  --completed-bg: rgba(7, 133, 150, 0.12);
+  --chart-bar-inactive: rgba(6, 126, 140, 0.20);
+  --chart-bar-active: #067E8C;
+  --card-shadow: 0 20px 46px -28px rgba(15, 23, 42, 0.24), 0 2px 10px -6px rgba(15, 23, 42, 0.10);
+  --glass-bg: rgba(255, 255, 255, 0.52);
+  --glass-bg-strong: rgba(255, 255, 255, 0.72);
+  --glass-bg-fallback: rgba(255, 255, 255, 0.97);
+  --glass-border: rgba(14, 27, 38, 0.12);
+  --glass-blur: blur(22px) saturate(140%);
+
+  --app-background: #F2F7FA;
+  --surface-primary: rgba(255, 255, 255, 0.86);
+  --surface-secondary: rgba(255, 255, 255, 0.84);
+  --surface-elevated: rgba(247, 251, 253, 0.94);
+  --surface-muted: #F4F6F7;
+  --sidebar-surface: rgba(251, 253, 255, 0.78);
+  --sidebar-border: rgba(14, 27, 38, 0.065);
+  --accent-primary: #067E8C;
+  --accent-secondary: #0F9F9A;
+  --text-on-accent: #FFFFFF;
+  --focus-ring: rgba(6, 126, 140, 0.65);
+  --state-success: #047857;
+  --state-warning: #B45309;
+  --state-error: #DC2626;
+  --atmo-accent: #067E8C;
+  --atmo-accent-2: #0F9F9A;
+  --atmo-ring-a: #5CD6E8;
+  --atmo-ring-b: #067E8C;
+  --atmo-ring-c: #6C8CF5;
+  --atmo-ring-glow: rgba(6, 126, 140, 0.34);
+  --timer-sheen: rgba(7, 133, 150, 0.07);
+  --ambient-base: #F2F7FA;
+  --ambient-a: rgba(14, 165, 183, 0.13);
+  --ambient-b: rgba(59, 130, 246, 0.10);
+  --ambient-c: rgba(45, 212, 191, 0.08);
+  --ambient-veil: rgba(247, 251, 253, 0.42);
+  --ambient-video-filter: saturate(0.95) brightness(0.92);
+  --ambient-video-opacity: 0.42;
+  --selection-bg: rgba(6, 126, 140, 0.28);
+  --shadow-glow: 0 0 34px -10px rgba(6, 126, 140, 0.55);
 }
 
 [data-theme='dark'] {
-  /* Dark Theme Tokens */
-  --bg-main: #0B0D10;
-  --bg-sidebar: #15191F;
-  --bg-card: #171C23;
-  --text-primary: #F3F6FA;
-  --text-secondary: #9BA8B8;
-  --text-muted: #627184;
-  --accent-teal: #0B91A1;
-  --accent-teal-dark: #087986;
-  --accent-cyan: #65DDE7;
-  --accent-soft: #162E34;
-  --accent-soft-hover: #1C3D45;
-  --border-color: #29313B;
-  --border-subtle: #1F2732;
-  --surface-soft: #222A34;
-  --surface-quote: #19252A;
-  --completed-bg: #1A343A;
-  --chart-bar-inactive: #2A3B44;
-  --chart-bar-active: #0B91A1;
-  --card-shadow: 0 6px 30px -4px rgba(0, 0, 0, 0.4), 0 2px 10px -2px rgba(0, 0, 0, 0.3);
-  /* Frosted surfaces for floating music panels */
-  --glass-bg: rgba(15, 22, 30, 0.58);
-  --glass-bg-strong: rgba(13, 18, 24, 0.74);
-  --glass-bg-fallback: rgba(17, 22, 29, 0.94);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-blur: blur(12px) saturate(130%);
+  --bg-main: #070C14;
+  --bg-sidebar: #0A121D;
+  --bg-card: #0E1826;
+  --text-primary: #F1F7FC;
+  --text-secondary: #A0ADBA;
+  --text-muted: #7A8896;
+  --accent-teal: #38D3E6;
+  --accent-teal-dark: #25A9BC;
+  --accent-cyan: #8AF3FF;
+  --accent-soft: rgba(56, 211, 230, 0.14);
+  --accent-soft-hover: rgba(56, 211, 230, 0.22);
+  --border-color: rgba(241, 247, 252, 0.14);
+  --border-subtle: rgba(241, 247, 252, 0.08);
+  --surface-soft: #1E2834;
+  --surface-quote: #122832;
+  --completed-bg: rgba(56, 211, 230, 0.16);
+  --chart-bar-inactive: rgba(56, 211, 230, 0.24);
+  --chart-bar-active: #38D3E6;
+  --card-shadow: 0 24px 52px -26px rgba(0, 0, 0, 0.86), 0 2px 12px -5px rgba(0, 0, 0, 0.55);
+  --glass-bg: rgba(14, 24, 38, 0.58);
+  --glass-bg-strong: rgba(14, 24, 38, 0.80);
+  --glass-bg-fallback: rgba(14, 24, 38, 0.97);
+  --glass-border: rgba(241, 247, 252, 0.14);
+  --glass-blur: blur(20px) saturate(150%);
+
+  --app-background: #070C14;
+  --surface-primary: rgba(14, 24, 38, 0.86);
+  --surface-secondary: rgba(13, 23, 35, 0.82);
+  --surface-elevated: rgba(19, 33, 51, 0.92);
+  --surface-muted: #1E2834;
+  --sidebar-surface: rgba(10, 18, 29, 0.84);
+  --sidebar-border: rgba(241, 247, 252, 0.08);
+  --accent-primary: #38D3E6;
+  --accent-secondary: #6EE7C8;
+  --text-on-accent: #04161B;
+  --focus-ring: rgba(56, 211, 230, 0.72);
+  --state-success: #34D399;
+  --state-warning: #FBBF24;
+  --state-error: #F87171;
+  --atmo-accent: #38D3E6;
+  --atmo-accent-2: #6EE7C8;
+  --atmo-ring-a: #8AF3FF;
+  --atmo-ring-b: #2CC9DF;
+  --atmo-ring-c: #7C9DFF;
+  --atmo-ring-glow: rgba(44, 201, 223, 0.5);
+  --timer-sheen: rgba(56, 211, 230, 0.11);
+  --ambient-base: #070C14;
+  --ambient-a: rgba(35, 211, 238, 0.20);
+  --ambient-b: rgba(58, 107, 255, 0.15);
+  --ambient-c: rgba(45, 212, 191, 0.10);
+  --ambient-veil: rgba(4, 8, 14, 0.42);
+  --ambient-video-filter: saturate(1.05) brightness(0.72);
+  --ambient-video-opacity: 0.62;
+  --selection-bg: rgba(56, 211, 230, 0.28);
+  --shadow-glow: 0 0 34px -10px rgba(56, 211, 230, 0.55);
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html, body {
-  width: 100%;
-  height: 100%;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: var(--bg-main);
-  color: var(--text-primary);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
-}
-
-#root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Tabular numbers for clocks and countdowns */
-.tabular-nums {
-  font-feature-settings: 'tnum' 1;
+/* Animated time digit animations */
+.animated-time {
+  display: inline-flex;
+  align-items: baseline;
   font-variant-numeric: tabular-nums;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.tdigit {
+  position: relative;
+  display: inline-block;
+  min-width: 1ch;
+  text-align: center;
+  height: 1em;
+  line-height: 1em;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+.tdigit.colon {
+  min-width: 0.6ch;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 9999px;
+.tdigit-inner {
+  display: inline-block;
+  will-change: transform, opacity;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+.tmode-fade .tdigit-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
 }
 
-button {
-  font-family: inherit;
-  cursor: pointer;
-  border: none;
-  background: none;
-  outline: none;
-  transition: all 0.15s ease;
+.tinner-prev.fade-out {
+  animation: t-fade-out var(--tanim-dur, 200ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-button:focus-visible {
-  outline: 2px solid var(--accent-teal);
-  outline-offset: 2px;
+.tinner-current.fade-in {
+  animation: t-fade-in var(--tanim-dur, 200ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-input, textarea, select {
-  font-family: inherit;
-  outline: none;
+.tmode-slide .tdigit-inner,
+.tmode-bounce .tdigit-inner,
+.tmode-droplet .tdigit-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+}
+
+.tinner-stack {
+  overflow: hidden;
+}
+
+.tinner-prev.slide-out {
+  animation: t-slide-out var(--tanim-dur, 220ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.tinner-current.slide-in {
+  animation: t-slide-in var(--tanim-dur, 220ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.tinner-prev.bounce-out {
+  animation: t-slide-out var(--tanim-dur, 240ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.tinner-current.bounce-in {
+  animation: t-bounce-in var(--tanim-dur, 240ms) cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.tinner-prev.droplet-out {
+  animation: t-droplet-out var(--tanim-dur, 220ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.tinner-current.droplet-in {
+  animation: t-droplet-in var(--tanim-dur, 220ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes t-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes t-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes t-slide-out {
+  from { transform: translateY(0%); opacity: 1; }
+  to { transform: translateY(-40%); opacity: 0; }
+}
+
+@keyframes t-slide-in {
+  from { transform: translateY(40%); opacity: 0; }
+  to { transform: translateY(0%); opacity: 1; }
+}
+
+@keyframes t-bounce-in {
+  0% { transform: translateY(40%); opacity: 0; }
+  60% { transform: translateY(-6%); opacity: 1; }
+  100% { transform: translateY(0%); opacity: 1; }
+}
+
+@keyframes t-droplet-out {
+  from { transform: translateY(0%); opacity: 1; }
+  to { transform: translateY(20%); opacity: 0; }
+}
+
+@keyframes t-droplet-in {
+  from { transform: translateY(-30%); opacity: 0; }
+  to { transform: translateY(0%); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animated-time .tdigit-inner,
+  .animated-time .tdigit-inner * {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }

@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23078596' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 22h14'/%3E%3Cpath d='M5 2h14'/%3E%3Cpath d='M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22'/%3E%3Cpath d='M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2'/%3E%3C/svg%3E" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#067E8C" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Atlera" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Atlera Timer — Premium Distraction-Free Study &amp; Focus Timer | Team Alum</title>
 
     <!-- Primary SEO Meta Tags -->
@@ -84,9 +90,44 @@
       ]
     }
     </script>
+
+    <!-- Pre-paint appearance bootstrap. Applies the last resolved atmosphere
+         token map before React mounts so a saved preset never flashes the
+         default light/dark palette. Keep the storage keys in sync with
+         src/services/storageService.js and src/theme/atmospheres.js. -->
+    <script>
+      (function () {
+        try {
+          var root = document.documentElement;
+          var data = JSON.parse(localStorage.getItem('atleratimer_v1_data') || '{}');
+          var mode = data.theme === 'dark' ? 'dark' : 'light';
+          var atmosphere = typeof data.atmosphere === 'string' ? data.atmosphere : 'aurora';
+          root.setAttribute('data-theme', mode);
+          root.setAttribute('data-atmosphere', atmosphere);
+          root.style.colorScheme = mode;
+
+          var raw = localStorage.getItem('atleratimer_appearance_v1');
+          if (!raw) return;
+          var cache = JSON.parse(raw);
+          if (!cache || cache.mode !== mode || cache.atmosphere !== atmosphere || !cache.vars) return;
+          Object.keys(cache.vars).forEach(function (name) {
+            root.style.setProperty(name, cache.vars[name]);
+          });
+        } catch (error) {
+          // Appearance is progressive enhancement; never block the app.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
+      }
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

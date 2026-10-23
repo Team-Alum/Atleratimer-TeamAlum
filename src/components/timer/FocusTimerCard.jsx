@@ -101,8 +101,9 @@ function FocusTimerCard() {
             <Pencil size={12} strokeWidth={2.2} style={{ opacity: 0.6 }} />
           </div>
 
-          <div className={`status-badge ${isRunning ? 'in-progress' : 'in-progress'}`}>
-            {isRunning ? 'In progress' : 'In progress'}
+          <div className={`status-badge ${isRunning ? 'in-progress' : 'is-paused'}`}>
+            <span className="status-badge-dot" aria-hidden="true" />
+            {isRunning ? 'In progress' : 'Paused'}
           </div>
 
           <button

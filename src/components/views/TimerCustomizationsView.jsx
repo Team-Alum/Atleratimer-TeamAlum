@@ -1,8 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTimerState, useTimerActions } from '../../context/useTimer';
 import { soundService } from '../../services/audioService';
 import { notificationService } from '../../services/notificationService';
-import { Volume2, Palette } from 'lucide-react';
+import AnimatedTime from '../timer/AnimatedTime';
+import {
+  Volume2,
+  Palette,
+  Sparkles,
+  Check,
+  CloudRain,
+  Car,
+  Moon,
+  Lamp,
+  Trees,
+  Waves,
+  Ban,
+  Type,
+} from 'lucide-react';
 import DialFace from '../timer/DialFace';
 import {
   DIAL_SCHEMES,
@@ -13,6 +27,23 @@ import {
   getDialLook,
   getSchemeSwatch,
 } from '../timer/dialStyle';
+import {
+  ATMOSPHERES,
+  DEFAULT_ATMOSPHERE,
+  getAtmosphere,
+  getAtmosphereRing,
+} from '../../theme/atmospheres';
+import { AMBIENT_SCENES, DEFAULT_AMBIENT_SCENE } from '../../ambient/ambientScenes';
+
+const AMBIENT_ICONS = {
+  off: Ban,
+  'rainy-city': CloudRain,
+  'night-drive': Car,
+  'starry-sky': Moon,
+  'cozy-study': Lamp,
+  'forest-rain': Trees,
+  ocean: Waves,
+};
 
 export default function TimerCustomizationsView() {
   const { data, theme } = useTimerState();
@@ -21,14 +52,26 @@ export default function TimerCustomizationsView() {
   // Dial-only appearance. Merged with the defaults so a partial/legacy payload
   // still resolves to a complete style.
   const dialStyle = { ...DIAL_DEFAULTS, ...(data?.dialStyle || {}) };
-  const dialLook = getDialLook(dialStyle);
+  const atmosphereId = getAtmosphere(data?.atmosphere || DEFAULT_ATMOSPHERE).id;
+  const atmosphere = getAtmosphere(atmosphereId);
+  const atmosphereRing = getAtmosphereRing(atmosphereId, theme);
+  const dialLook = getDialLook(dialStyle, atmosphereRing);
   const moodName = DIAL_MOODS.find((mood) => mood.id === dialLook.mood)?.name || dialLook.mood;
+  const activeAmbient = data?.ambientScene || DEFAULT_AMBIENT_SCENE;
 
   const updateDial = (patch) => {
     setData((prev) => ({
       ...prev,
       dialStyle: { ...DIAL_DEFAULTS, ...prev.dialStyle, ...patch },
     }));
+  };
+
+  const updateAtmosphere = (id) => {
+    setData((prev) => ({ ...prev, atmosphere: id }));
+  };
+
+  const updateAmbientScene = (id) => {
+    setData((prev) => ({ ...prev, ambientScene: id }));
   };
 
   const handleTestChime = () => {
@@ -53,6 +96,140 @@ export default function TimerCustomizationsView() {
 
   return (
     <div className="view-container">
+      {/* Atmosphere — app-wide palette, independent of light/dark */}
+      <div className="view-card atmosphere-panel">
+        <div className="section-heading">
+          <span className="section-heading-icon" aria-hidden="true"><Sparkles size={18} /></span>
+          <div className="section-heading-copy">
+            <h2 className="view-card-title">Atmosphere</h2>
+            <p className="view-card-desc">
+              Ambient light, surface tint and timer ring for the whole workspace. Every preset is
+              designed for both light and dark themes.
+            </p>
+          </div>
+          <span className="atmosphere-current">{atmosphere.name}</span>
+        </div>
+
+        <div className="atmo-grid" role="radiogroup" aria-label="Atmosphere preset">
+          {ATMOSPHERES.map((preset) => {
+            const active = preset.id === atmosphereId;
+            const palette = preset[theme === 'dark' ? 'dark' : 'light'];
+            return (
+              <label key={preset.id} className={`atmo-option${active ? ' is-active' : ''}`}>
+                <input
+                  className="sr-only"
+                  type="radio"
+                  name="atmosphere-preset"
+                  value={preset.id}
+                  checked={active}
+                  onChange={() => updateAtmosphere(preset.id)}
+                />
+                <span className="atmo-swatch" aria-hidden="true">
+                  <span
+                    className="atmo-swatch-glow"
+                    style={{ backgroundImage: `linear-gradient(135deg, ${palette.bg} 0%, ${palette.accent} 150%)` }}
+                  />
+                  <span
+                    className="atmo-swatch-surface"
+                    style={{ background: palette.surface }}
+                  />
+                  <span
+                    className="atmo-swatch-ring"
+                    style={{ backgroundImage: `conic-gradient(from 210deg, ${palette.ring.join(', ')})` }}
+                  />
+                </span>
+                <span className="atmo-meta">
+                  <span className="atmo-name">
+                    {preset.name}
+                    {active && <Check size={13} className="atmo-check" aria-hidden="true" />}
+                  </span>
+                  <span className="atmo-tagline">{preset.tagline}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+
+        <p className="atmo-note">
+          Previews use the current theme. The timer ring follows the atmosphere while Dial
+          Appearance is set to “Atmosphere”; choosing a custom dial palette overrides only the ring.
+        </p>
+      </div>
+
+      {/* Ambient environment — optional licensed footage with tonal fallback */}
+      <div className="view-card ambient-panel">
+        <div className="section-heading">
+          <span className="section-heading-icon" aria-hidden="true"><CloudRain size={18} /></span>
+          <div className="section-heading-copy">
+            <h2 className="view-card-title">Ambient environment</h2>
+            <p className="view-card-desc">
+              A single, subtle scene behind the workspace. Only the selected scene is loaded, and
+              reduced motion always shows the still version.
+            </p>
+          </div>
+        </div>
+
+        <div className="ambient-grid" role="radiogroup" aria-label="Ambient scene">
+          {AMBIENT_SCENES.map((scene) => {
+            const Icon = AMBIENT_ICONS[scene.id] || Sparkles;
+            const active = activeAmbient === scene.id;
+            const thumbStyle = scene.fallback
+              ? {
+                backgroundImage: `radial-gradient(120% 100% at 18% 15%, ${scene.fallback.a}, transparent 62%), radial-gradient(100% 90% at 82% 22%, ${scene.fallback.b}, transparent 58%), radial-gradient(120% 110% at 55% 105%, ${scene.fallback.c}, transparent 68%), linear-gradient(160deg, ${scene.fallback.base}, ${scene.fallback.base})`,
+              }
+              : undefined;
+            return (
+              <label key={scene.id} className={`ambient-option${active ? ' is-active' : ''}`}>
+                <input
+                  className="sr-only"
+                  type="radio"
+                  name="ambient-scene"
+                  value={scene.id}
+                  checked={active}
+                  onChange={() => updateAmbientScene(scene.id)}
+                />
+                <span
+                  className={`ambient-thumb${scene.fallback ? '' : ' ambient-thumb--empty'}`}
+                  style={thumbStyle}
+                  aria-hidden="true"
+                >
+                  <Icon size={18} />
+                  {active && <span className="ambient-selected-mark"><Check size={11} /></span>}
+                </span>
+                <span className="ambient-meta">
+                  <span className="ambient-name">{scene.name}</span>
+                  <span className="ambient-tagline">{scene.tagline}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+
+        <div className="setting-row ambient-motion-row">
+          <div>
+            <div className="setting-label">Scene motion</div>
+            <div className="setting-help">
+              Slow video motion. Turn this off for a still scene; reduced motion disables it
+              automatically.
+            </div>
+          </div>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={data?.ambientMotion !== false}
+              onChange={(e) => setData((prev) => ({ ...prev, ambientMotion: e.target.checked }))}
+              aria-label="Play ambient scene motion"
+            />
+            <span className="toggle-slider" aria-hidden="true" />
+          </label>
+        </div>
+
+        <p className="ambient-asset-note">
+          Licensed clips live in <code>/assets/ambient/</code>. If a clip is not installed, a tonal
+          fallback is shown instead of an empty frame.
+        </p>
+      </div>
+
       {/* Dial Appearance Card — everything here is scoped to the circular dial */}
       <div className="view-card dial-card">
         <div className="dial-card-controls">
@@ -61,14 +238,16 @@ export default function TimerCustomizationsView() {
             <h2 className="view-card-title" style={{ margin: 0 }}>Dial Appearance</h2>
           </div>
           <p className="view-card-desc">
-            Colour scheme, mood, comfort and colour effects for the focus dial only — the rest of
-            the workspace stays exactly as it is.
+            Fine-tune the focus dial. “Atmosphere” follows the active preset; any other scheme
+            overrides the ring without changing the workspace.
           </p>
 
           <div className="dial-control">
             <div className="dial-control-head">
               <span className="setting-label">Colour scheme</span>
-              <span className="dial-control-value">{dialLook.schemeName}</span>
+              <span className="dial-control-value">
+                {dialLook.schemeName}{dialLook.isAtmosphere ? ' · auto' : ''}
+              </span>
             </div>
             <div className="dial-swatches" role="group" aria-label="Dial colour scheme">
               {DIAL_SCHEMES.map((scheme) => (
@@ -76,7 +255,7 @@ export default function TimerCustomizationsView() {
                   key={scheme.id}
                   type="button"
                   className={`dial-swatch ${dialStyle.scheme === scheme.id ? 'active' : ''}`}
-                  style={{ backgroundImage: getSchemeSwatch(scheme.id, dialStyle.mood) }}
+                  style={{ backgroundImage: getSchemeSwatch(scheme.id, dialStyle.mood, atmosphereRing) }}
                   aria-label={scheme.name}
                   aria-pressed={dialStyle.scheme === scheme.id}
                   title={scheme.name}
@@ -177,12 +356,14 @@ export default function TimerCustomizationsView() {
             <button
               onClick={() => toggleTheme('light')}
               className={`preset-pill ${theme === 'light' ? 'active' : ''}`}
+              aria-pressed={theme === 'light'}
             >
               Light
             </button>
             <button
               onClick={() => toggleTheme('dark')}
               className={`preset-pill ${theme === 'dark' ? 'active' : ''}`}
+              aria-pressed={theme === 'dark'}
             >
               Dark
             </button>
@@ -317,6 +498,82 @@ export default function TimerCustomizationsView() {
         </div>
       </div>
 
+      {/* Digit Animation Card */}
+      <div className="view-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+          <Type size={18} className="stat-card-icon" />
+          <h2 className="view-card-title" style={{ margin: 0 }}>Digit Animation</h2>
+        </div>
+        <p className="view-card-desc">
+          Choose how time changes appear during your focus sessions. Normal is default.
+        </p>
+
+        <div className="dial-control">
+          <div className="dial-control-head">
+            <span className="setting-label">Animation mode</span>
+            <span className="dial-control-value">
+              {(data?.digitAnimation?.mode || 'normal').charAt(0).toUpperCase() + (data?.digitAnimation?.mode || 'normal').slice(1)}
+            </span>
+          </div>
+          <div className="dial-pills" role="group" aria-label="Digit animation mode">
+            {['normal', 'droplet', 'slide', 'bounce', 'fade'].map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={`preset-pill ${(data?.digitAnimation?.mode || 'normal') === mode ? 'active' : ''}`}
+                aria-pressed={(data?.digitAnimation?.mode || 'normal') === mode}
+                onClick={() =>
+                  setData((prev) => ({
+                    ...prev,
+                    digitAnimation: { ...(prev.digitAnimation || {}), mode },
+                  }))
+                }
+              >
+                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="dial-control" style={{ marginTop: 14 }}>
+          <div className="dial-control-head">
+            <span className="setting-label">Animation speed</span>
+            <span className="dial-control-value">
+              {(data?.digitAnimation?.speed || 'balanced').charAt(0).toUpperCase() + (data?.digitAnimation?.speed || 'balanced').slice(1)}
+            </span>
+          </div>
+          <div className="dial-pills" role="group" aria-label="Digit animation speed">
+            {['subtle', 'balanced', 'expressive'].map((speed) => (
+              <button
+                key={speed}
+                type="button"
+                className={`preset-pill ${(data?.digitAnimation?.speed || 'balanced') === speed ? 'active' : ''}`}
+                aria-pressed={(data?.digitAnimation?.speed || 'balanced') === speed}
+                onClick={() =>
+                  setData((prev) => ({
+                    ...prev,
+                    digitAnimation: { ...(prev.digitAnimation || {}), speed },
+                  }))
+                }
+              >
+                {speed.charAt(0).toUpperCase() + speed.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Live preview</div>
+            <DigitAnimationPreview
+              mode={data?.digitAnimation?.mode || 'normal'}
+              speed={data?.digitAnimation?.speed || 'balanced'}
+              reducedMotion={!!data?.reducedMotion}
+            />
+          </div>
+        </div>
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
         <button
           type="button"
@@ -326,6 +583,26 @@ export default function TimerCustomizationsView() {
           Return to Focus Dashboard
         </button>
       </div>
+    </div>
+  );
+}
+
+function DigitAnimationPreview({ mode, speed, reducedMotion }) {
+  const [value, setValue] = useState('25:00');
+  useEffect(() => {
+    let count = 0;
+    const id = setInterval(() => {
+      count++;
+      if (count % 3 === 1) setValue('24:59');
+      else if (count % 3 === 2) setValue('24:58');
+      else setValue('25:00');
+    }, 1400);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div style={{ fontSize: 42, fontWeight: 600, letterSpacing: '0.02em' }} className="tabular-nums">
+      <AnimatedTime value={value} mode={mode} speed={speed} reducedMotion={reducedMotion} />
     </div>
   );
 }

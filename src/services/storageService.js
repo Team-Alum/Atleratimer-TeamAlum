@@ -1,4 +1,5 @@
 // Data persistence and history management with versioning
+import { APPEARANCE_CACHE_KEY } from '../theme/atmospheres';
 
 const STORAGE_KEY = 'atleratimer_v1_data';
 
@@ -38,8 +39,13 @@ function getDefaultInitialData() {
   return {
     version: 2,
     theme: 'light', // 'light' or 'dark'
+    atmosphere: 'aurora', // see src/theme/atmospheres.js
+    ambientScene: 'off', // 'off' | see src/ambient/ambientScenes.js
+    ambientMotion: true,
     dialStyle: {
-      scheme: 'teal', // see src/components/timer/dialStyle.js
+      // New users follow the atmosphere. An explicit scheme remains untouched
+      // for people who already chose one.
+      scheme: 'atmosphere', // see src/components/timer/dialStyle.js
       mood: 'natural',
       comfort: 'balanced',
       effect: 'glow',
@@ -51,6 +57,10 @@ function getDefaultInitialData() {
     ambientVolume: 0.15,
     reducedMotion: false,
     desktopNotifications: false,
+    digitAnimation: {
+      mode: 'normal', // 'normal' | 'droplet' | 'slide' | 'bounce' | 'fade'
+      speed: 'balanced', // 'subtle' | 'balanced' | 'expressive'
+    },
     timerSettings: {
       focusDuration: focusMins, // minutes
       shortBreakDuration: 5,
@@ -92,10 +102,10 @@ function mergeMissingDefaults(parsed, defaults) {
   return merged;
 }
 
-// Keys that no longer exist in the app. The ambient background was replaced by
-// the dial-only appearance controls, and the old app-wide appearance keys were
-// never wired to anything, so both are dropped on load instead of lingering in
-// every saved payload.
+// Keys that no longer exist in the app. `ambientSettings` belonged to the old
+// decorative background implementation; ambient scenes now live in
+// `ambientScene`/`ambientMotion`. The remaining entries were never wired to
+// anything and are dropped on load instead of lingering in every payload.
 const LEGACY_KEYS = ['ambientSettings', 'colorScheme', 'comfortMode', 'accentColor', 'dialColor'];
 
 function stripLegacyKeys(data) {
@@ -227,6 +237,7 @@ export const storageService = {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(APPEARANCE_CACHE_KEY);
       }
       lastWritten = null;
       pendingPayload = null;

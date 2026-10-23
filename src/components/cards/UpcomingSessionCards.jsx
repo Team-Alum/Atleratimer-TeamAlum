@@ -22,6 +22,7 @@ function UpcomingSessionCards() {
         title="Switch to focus session"
         tabIndex={0}
         role="button"
+        aria-current={isCurrentFocusActive ? 'true' : undefined}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -39,6 +40,7 @@ function UpcomingSessionCards() {
           </div>
         </div>
         <div className="upcoming-duration">
+          {isCurrentFocusActive && <span className="upcoming-active-flag">Active</span>}
           {timerSettings.focusDuration} min
         </div>
       </div>
@@ -50,6 +52,7 @@ function UpcomingSessionCards() {
         title="Start or configure short break"
         tabIndex={0}
         role="button"
+        aria-current={isShortBreakActive ? 'true' : undefined}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -67,6 +70,7 @@ function UpcomingSessionCards() {
           </div>
         </div>
         <div className="upcoming-duration">
+          {isShortBreakActive && <span className="upcoming-active-flag">Active</span>}
           {timerSettings.shortBreakDuration} min
         </div>
       </div>
@@ -78,6 +82,7 @@ function UpcomingSessionCards() {
         title={isFinalSession ? 'Final session in this cycle' : `Session ${cycleIndex} of ${timerSettings.sessionsPerCycle}`}
         tabIndex={0}
         role="button"
+        aria-current={isLongBreakActive ? 'true' : undefined}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -99,6 +104,7 @@ function UpcomingSessionCards() {
           </div>
         </div>
         <div className="upcoming-duration">
+          {isLongBreakActive && <span className="upcoming-active-flag">Active</span>}
           {isFinalSession ? timerSettings.longBreakDuration : timerSettings.focusDuration} min
         </div>
       </div>

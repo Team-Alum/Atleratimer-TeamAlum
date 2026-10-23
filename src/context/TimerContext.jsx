@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import {
   TimerStateContext,
   TimerActionsContext,
@@ -9,6 +9,7 @@ import { soundService } from '../services/audioService';
 import { notificationService } from '../services/notificationService';
 import { syncService } from '../services/syncService';
 import { useAuth } from './useAuth';
+import { applyAtmosphere, getAtmosphereRing } from '../theme/atmospheres';
 import confetti from 'canvas-confetti';
 
 // Merge cloud sessions into the local data blob. Pure: it returns the next
@@ -68,7 +69,7 @@ export function TimerProvider({ children }) {
   const timerIntervalRef = useRef(null);
 
   // Destructure state
-  const { theme, timerSettings, timerState } = data;
+  const { theme, atmosphere, timerSettings, timerState } = data;
   const { mode, cycleIndex, sessionTitle, isRunning } = timerState;
   const timerTotalSeconds = timerState.totalSeconds;
   const { focusDuration, shortBreakDuration, longBreakDuration, sessionsPerCycle } = timerSettings;
@@ -143,10 +144,13 @@ export function TimerProvider({ children }) {
     return () => { cancelled = true; };
   }, [userId]);
 
-  // Set HTML theme attribute
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+  // Publish the atmosphere + theme as CSS custom properties. `useLayoutEffect`
+  // runs before the browser paints, so changing either never shows a frame in
+  // the previous palette. The inline bootstrap in index.html covers the gap
+  // before React mounts.
+  useLayoutEffect(() => {
+    applyAtmosphere(atmosphere || 'aurora', theme);
+  }, [atmosphere, theme]);
 
   // Handle ambient sound toggle
   useEffect(() => {
@@ -168,12 +172,12 @@ export function TimerProvider({ children }) {
         particleCount: 80,
         spread: 60,
         origin: { y: 0.6 },
-        colors: ['#078596', '#62DCE7', '#38BDF8', '#10B981'],
+        colors: getAtmosphereRing(atmosphere, theme).stops,
       });
     } catch {
       // ignore
     }
-  }, [reducedMotion]);
+  }, [reducedMotion, atmosphere, theme]);
 
   // Move to next session in Pomodoro cycle
   const handleSessionCompletion = useCallback(() => {
@@ -575,6 +579,7 @@ export function TimerProvider({ children }) {
     isEditingTitle,
     showHistoryModal,
     theme,
+    atmosphere,
     timerState: exposedTimerState,
     timerSettings,
     todayFocusMinutes,
@@ -587,6 +592,7 @@ export function TimerProvider({ children }) {
     isEditingTitle,
     showHistoryModal,
     theme,
+    atmosphere,
     exposedTimerState,
     timerSettings,
     todayFocusMinutes,

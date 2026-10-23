@@ -8,10 +8,11 @@ import TimerCustomizationsView from '../views/TimerCustomizationsView';
 import SettingsView from '../views/SettingsView';
 import SessionHistoryModal from '../stats/SessionHistoryModal';
 import Watermark from './Watermark';
+import AmbientBackground from '../../ambient/AmbientBackground';
 import { Menu, Hourglass } from 'lucide-react';
 
 export default function AppShell() {
-  const { activeView, showHistoryModal } = useTimerState();
+  const { activeView, showHistoryModal, data, theme } = useTimerState();
   const { setShowHistoryModal } = useTimerActions();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -23,6 +24,14 @@ export default function AppShell() {
 
   return (
     <div className="app-container">
+      {/* Decorative, fixed background: atmosphere wash plus optional scene */}
+      <AmbientBackground
+        sceneId={data?.ambientScene}
+        ambientMotion={data?.ambientMotion !== false}
+        reducedMotion={data?.reducedMotion}
+        theme={theme}
+      />
+
       {/* Mobile Top Navigation Bar */}
       <div className="mobile-top-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

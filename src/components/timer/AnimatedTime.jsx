@@ -2,39 +2,40 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 
 function getAnimationDurations(speed) {
-  if (speed === 'subtle') return { droplet: 150, slide: 150, bounce: 170, fade: 130 };
-  if (speed === 'expressive') return { droplet: 340, slide: 320, bounce: 380, fade: 300 };
-  return { droplet: 230, slide: 210, bounce: 260, fade: 220 };
+  if (speed === 'subtle') return { droplet: 140, slide: 140, bounce: 160, fade: 120 };
+  if (speed === 'expressive') return { droplet: 320, slide: 300, bounce: 360, fade: 280 };
+  return { droplet: 220, slide: 200, bounce: 240, fade: 200 };
 }
 
 function TickDigit({ char, mode, duration, reducedMotion }) {
-  const [displayChar, setDisplayChar] = useState(char);
-  const [prevChar, setPrevChar] = useState(char);
-  const [animating, setAnimating] = useState(false);
-  const lastCharRef = useRef(char);
+  const [current, setCurrent] = useState(char);
+  const [outgoing, setOutgoing] = useState(char);
+  const [keyOut, setKeyOut] = useState(0);
+  const [keyIn, setKeyIn] = useState(0);
+  const lastRef = useRef(char);
 
   useEffect(() => {
-    if (lastCharRef.current === char) {
-      setDisplayChar(char);
+    if (lastRef.current === char) {
+      setCurrent(char);
       return;
     }
     if (reducedMotion || mode === 'normal') {
-      lastCharRef.current = char;
-      setPrevChar(char);
-      setDisplayChar(char);
-      setAnimating(false);
+      lastRef.current = char;
+      setOutgoing(char);
+      setCurrent(char);
+      setKeyOut((k) => k + 1);
+      setKeyIn((k) => k + 1);
       return;
     }
 
-    // Start animation: show previous char animating out, current char animating in
-    setPrevChar(lastCharRef.current);
-    setDisplayChar(char);
-    setAnimating(true);
+    setOutgoing(lastRef.current);
+    setCurrent(char);
+    setKeyOut((k) => k + 1);
+    setKeyIn((k) => k + 1);
 
     const t = setTimeout(() => {
-      setAnimating(false);
-      lastCharRef.current = char;
-    }, duration + 40);
+      lastRef.current = char;
+    }, duration + 10);
 
     return () => clearTimeout(t);
   }, [char, duration, reducedMotion, mode]);
@@ -51,36 +52,36 @@ function TickDigit({ char, mode, duration, reducedMotion }) {
 
   if (effectiveMode === 'fade') {
     return (
-      <span className={`tdigit tmode-fade ${animating ? 'is-animating' : ''}`} style={{ '--tanim-dur': `${duration}ms` }}>
-        <span className={`tdigit-layer tprev ${animating ? 'fade-out' : ''}`}>{prevChar}</span>
-        <span className={`tdigit-layer tcurr ${animating ? 'fade-in' : ''}`}>{displayChar}</span>
+      <span className="tdigit tmode-fade" style={{ '--tanim-dur': `${duration}ms` }}>
+        <span className="tdigit-layer tprev" key={`f-out-${keyOut}`}>{outgoing}</span>
+        <span className="tdigit-layer tcurr" key={`f-in-${keyIn}`}>{current}</span>
       </span>
     );
   }
 
   if (effectiveMode === 'slide') {
     return (
-      <span className={`tdigit tmode-slide ${animating ? 'is-animating' : ''}`} style={{ '--tanim-dur': `${duration}ms` }}>
-        <span className={`tdigit-layer tprev ${animating ? 'slide-out' : ''}`}>{prevChar}</span>
-        <span className={`tdigit-layer tcurr ${animating ? 'slide-in' : ''}`}>{displayChar}</span>
+      <span className="tdigit tmode-slide" style={{ '--tanim-dur': `${duration}ms` }}>
+        <span className="tdigit-layer tprev" key={`s-out-${keyOut}`}>{outgoing}</span>
+        <span className="tdigit-layer tcurr" key={`s-in-${keyIn}`}>{current}</span>
       </span>
     );
   }
 
   if (effectiveMode === 'bounce') {
     return (
-      <span className={`tdigit tmode-bounce ${animating ? 'is-animating' : ''}`} style={{ '--tanim-dur': `${duration}ms` }}>
-        <span className={`tdigit-layer tprev ${animating ? 'slide-out' : ''}`}>{prevChar}</span>
-        <span className={`tdigit-layer tcurr ${animating ? 'bounce-in' : ''}`}>{displayChar}</span>
+      <span className="tdigit tmode-bounce" style={{ '--tanim-dur': `${duration}ms` }}>
+        <span className="tdigit-layer tprev" key={`b-out-${keyOut}`}>{outgoing}</span>
+        <span className="tdigit-layer tcurr" key={`b-in-${keyIn}`}>{current}</span>
       </span>
     );
   }
 
   if (effectiveMode === 'droplet') {
     return (
-      <span className={`tdigit tmode-droplet ${animating ? 'is-animating' : ''}`} style={{ '--tanim-dur': `${duration}ms` }}>
-        <span className={`tdigit-layer tprev ${animating ? 'droplet-out' : ''}`}>{prevChar}</span>
-        <span className={`tdigit-layer tcurr ${animating ? 'droplet-in' : ''}`}>{displayChar}</span>
+      <span className="tdigit tmode-droplet" style={{ '--tanim-dur': `${duration}ms` }}>
+        <span className="tdigit-layer tprev" key={`d-out-${keyOut}`}>{outgoing}</span>
+        <span className="tdigit-layer tcurr" key={`d-in-${keyIn}`}>{current}</span>
       </span>
     );
   }

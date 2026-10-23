@@ -12,109 +12,101 @@
   text-align: center;
   height: 1em;
   line-height: 1em;
-  vertical-align: baseline;
 }
 
 .tdigit.colon {
   min-width: 0.6ch;
 }
 
-.tdigit-inner {
-  display: inline-block;
-}
-
 .tdigit-layer {
   position: absolute;
-  left: 0;
-  top: 0;
-  right: 0;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: inline-block;
   will-change: transform, opacity;
-  pointer-events: none;
+  white-space: nowrap;
 }
 
 .tcurr {
   position: relative;
+  left: 50%;
+  transform: translate(-50%, 0);
 }
 
 /* Fade */
-.tmode-fade .tprev.fade-out {
-  animation: t-fade-out var(--tanim-dur, 220ms) ease-in forwards;
+.tmode-fade .tprev {
+  animation: t-fade-out var(--tanim-dur, 200ms) ease forwards;
 }
-
-.tmode-fade .tcurr.fade-in {
-  animation: t-fade-in var(--tanim-dur, 220ms) ease-out forwards;
+.tmode-fade .tcurr {
+  animation: t-fade-in var(--tanim-dur, 200ms) ease forwards;
 }
 
 /* Slide */
-.tmode-slide .tprev.slide-out {
-  animation: t-slide-up-out var(--tanim-dur, 210ms) cubic-bezier(0.4, 0, 0.6, 1) forwards;
+.tmode-slide .tprev {
+  animation: t-slide-out var(--tanim-dur, 200ms) cubic-bezier(0.4, 0, 0.6, 1) forwards;
 }
-
-.tmode-slide .tcurr.slide-in {
-  animation: t-slide-up-in var(--tanim-dur, 210ms) cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+.tmode-slide .tcurr {
+  animation: t-slide-in var(--tanim-dur, 200ms) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 /* Bounce */
-.tmode-bounce .tprev.slide-out {
-  animation: t-slide-up-out var(--tanim-dur, 260ms) cubic-bezier(0.4, 0, 0.6, 1) forwards;
+.tmode-bounce .tprev {
+  animation: t-slide-out var(--tanim-dur, 240ms) cubic-bezier(0.4, 0, 0.6, 1) forwards;
 }
-
-.tmode-bounce .tcurr.bounce-in {
-  animation: t-bounce-in var(--tanim-dur, 260ms) cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+.tmode-bounce .tcurr {
+  animation: t-bounce-in var(--tanim-dur, 240ms) cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 /* Droplet */
-.tmode-droplet .tprev.droplet-out {
-  animation: t-droplet-out var(--tanim-dur, 230ms) cubic-bezier(0.4, 0, 0.6, 1) forwards;
+.tmode-droplet .tprev {
+  animation: t-droplet-out var(--tanim-dur, 220ms) cubic-bezier(0.4, 0, 0.6, 1) forwards;
 }
-
-.tmode-droplet .tcurr.droplet-in {
-  animation: t-droplet-in var(--tanim-dur, 230ms) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+.tmode-droplet .tcurr {
+  animation: t-droplet-in var(--tanim-dur, 220ms) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 @keyframes t-fade-out {
   from { opacity: 1; }
   to { opacity: 0; }
 }
-
 @keyframes t-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes t-slide-up-out {
-  from { transform: translateY(0%); opacity: 1; }
-  to { transform: translateY(-50%); opacity: 0; }
+@keyframes t-slide-out {
+  from { transform: translate(-50%, -50%); opacity: 1; }
+  to { transform: translate(-50%, -90%); opacity: 0; }
 }
-
-@keyframes t-slide-up-in {
-  from { transform: translateY(50%); opacity: 0; }
-  to { transform: translateY(0%); opacity: 1; }
+@keyframes t-slide-in {
+  from { transform: translate(-50%, 10%); opacity: 0; }
+  to { transform: translate(-50%, -50%); opacity: 1; }
 }
 
 @keyframes t-bounce-in {
-  0% { transform: translateY(60%); opacity: 0; }
-  60% { transform: translateY(-12%); opacity: 1; }
-  80% { transform: translateY(4%); opacity: 1; }
-  100% { transform: translateY(0%); opacity: 1; }
+  0% { transform: translate(-50%, 30%); opacity: 0; }
+  60% { transform: translate(-50%, -60%); opacity: 1; }
+  80% { transform: translate(-50%, -45%); opacity: 1; }
+  100% { transform: translate(-50%, -50%); opacity: 1; }
 }
 
 @keyframes t-droplet-out {
-  from { transform: translateY(0%); opacity: 1; }
-  to { transform: translateY(15%); opacity: 0; }
+  from { transform: translate(-50%, -50%); opacity: 1; }
+  to { transform: translate(-50%, -40%); opacity: 0; }
 }
-
 @keyframes t-droplet-in {
-  from { transform: translateY(-40%); opacity: 0; }
-  to { transform: translateY(0%); opacity: 1; }
+  from { transform: translate(-50%, -80%); opacity: 0; }
+  to { transform: translate(-50%, -50%); opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animated-time .tdigit-layer,
-  .animated-time .tdigit-layer * {
+  .animated-time .tdigit-layer {
     animation: none !important;
     transition: none !important;
-    transform: none !important;
+    transform: translate(-50%, -50%) !important;
+  }
+  .animated-time .tcurr {
+    transform: translate(-50%, 0) !important;
   }
 }

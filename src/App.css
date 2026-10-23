@@ -2273,11 +2273,11 @@ body.atlera-focus-fullscreen {
 }
 
 .atlera-fs-bg {
-  background: transparent;
+  background: var(--app-background, var(--bg-main));
 }
 
 .atlera-fs-scrim {
-  background: radial-gradient(120% 120% at 50% 0%, rgba(2, 6, 12, 0.25) 0%, rgba(2, 6, 12, 0.4) 100%);
+  background: radial-gradient(120% 140% at 50% 0%, rgba(0, 0, 0, 0.02) 0%, transparent 55%);
 }
 
 .atlera-fs-topbar {

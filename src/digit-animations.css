@@ -3,6 +3,7 @@
   display: inline-flex;
   align-items: baseline;
   font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .tdigit {
@@ -12,26 +13,31 @@
   text-align: center;
   height: 1em;
   line-height: 1em;
+  vertical-align: baseline;
+  overflow: hidden;
 }
 
 .tdigit.colon {
   min-width: 0.6ch;
+  overflow: visible;
 }
 
 .tdigit-layer {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  display: inline-block;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   will-change: transform, opacity;
   white-space: nowrap;
 }
 
 .tcurr {
   position: relative;
-  left: 50%;
-  transform: translate(-50%, 0);
+  width: auto;
 }
 
 /* Fade */
@@ -76,37 +82,34 @@
 }
 
 @keyframes t-slide-out {
-  from { transform: translate(-50%, -50%); opacity: 1; }
-  to { transform: translate(-50%, -90%); opacity: 0; }
+  from { transform: translateY(0%); opacity: 1; }
+  to { transform: translateY(-60%); opacity: 0; }
 }
 @keyframes t-slide-in {
-  from { transform: translate(-50%, 10%); opacity: 0; }
-  to { transform: translate(-50%, -50%); opacity: 1; }
+  from { transform: translateY(60%); opacity: 0; }
+  to { transform: translateY(0%); opacity: 1; }
 }
 
 @keyframes t-bounce-in {
-  0% { transform: translate(-50%, 30%); opacity: 0; }
-  60% { transform: translate(-50%, -60%); opacity: 1; }
-  80% { transform: translate(-50%, -45%); opacity: 1; }
-  100% { transform: translate(-50%, -50%); opacity: 1; }
+  0% { transform: translateY(40%); opacity: 0; }
+  60% { transform: translateY(-12%); opacity: 1; }
+  80% { transform: translateY(4%); opacity: 1; }
+  100% { transform: translateY(0%); opacity: 1; }
 }
 
 @keyframes t-droplet-out {
-  from { transform: translate(-50%, -50%); opacity: 1; }
-  to { transform: translate(-50%, -40%); opacity: 0; }
+  from { transform: translateY(0%); opacity: 1; }
+  to { transform: translateY(15%); opacity: 0; }
 }
 @keyframes t-droplet-in {
-  from { transform: translate(-50%, -80%); opacity: 0; }
-  to { transform: translate(-50%, -50%); opacity: 1; }
+  from { transform: translateY(-40%); opacity: 0; }
+  to { transform: translateY(0%); opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animated-time .tdigit-layer {
     animation: none !important;
     transition: none !important;
-    transform: translate(-50%, -50%) !important;
-  }
-  .animated-time .tcurr {
-    transform: translate(-50%, 0) !important;
+    transform: none !important;
   }
 }

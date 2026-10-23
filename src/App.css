@@ -456,6 +456,7 @@
   justify-content: center;
   margin: 8px 0 22px;
   position: relative;
+  overflow: visible;
 }
 
 .svg-ring-wrapper {
@@ -466,6 +467,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: visible;
 }
 
 .timer-svg {
@@ -487,6 +489,7 @@
   justify-content: center;
   border-radius: 50%;
   pointer-events: none;
+  text-align: center;
 }
 
 .timer-mode-tag {
@@ -506,6 +509,10 @@
   line-height: 1;
   margin-bottom: 8px;
   font-family: inherit;
+  height: 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .timer-sub-status {

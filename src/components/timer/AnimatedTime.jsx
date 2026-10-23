@@ -1,40 +1,43 @@
-// AnimatedTime — configurable digit animation system with multiple modes
-// Animations are presentation-only; the source of truth comes from props
-import React, { memo, useEffect, useState } from 'react';
+// AnimatedTime — configurable digit animation system with distinct modes
+import React, { memo, useEffect, useRef, useState } from 'react';
 
 function getAnimationDurations(speed) {
-  // Durations in ms
-  if (speed === 'subtle') return { droplet: 140, slide: 140, bounce: 160, fade: 120 };
-  if (speed === 'expressive') return { droplet: 320, slide: 320, bounce: 340, fade: 280 };
-  // balanced
-  return { droplet: 220, slide: 220, bounce: 240, fade: 200 };
+  if (speed === 'subtle') return { droplet: 150, slide: 150, bounce: 170, fade: 130 };
+  if (speed === 'expressive') return { droplet: 340, slide: 320, bounce: 380, fade: 300 };
+  return { droplet: 230, slide: 210, bounce: 260, fade: 220 };
 }
 
 function TickDigit({ char, mode, duration, reducedMotion }) {
+  const [displayChar, setDisplayChar] = useState(char);
   const [prevChar, setPrevChar] = useState(char);
   const [animating, setAnimating] = useState(false);
-  const [direction, setDirection] = useState('in');
+  const lastCharRef = useRef(char);
 
   useEffect(() => {
-    if (prevChar === char) return;
-    if (reducedMotion || mode === 'normal') {
-      setPrevChar(char);
+    if (lastCharRef.current === char) {
+      setDisplayChar(char);
       return;
     }
-    setDirection('out');
-    setAnimating(true);
-    const t = setTimeout(() => {
+    if (reducedMotion || mode === 'normal') {
+      lastCharRef.current = char;
       setPrevChar(char);
-      setDirection('in');
-    }, duration * 0.6);
-    const t2 = setTimeout(() => {
+      setDisplayChar(char);
       setAnimating(false);
-    }, duration + 50);
-    return () => {
-      clearTimeout(t);
-      clearTimeout(t2);
-    };
-  }, [char, prevChar, duration, reducedMotion, mode]);
+      return;
+    }
+
+    // Start animation: show previous char animating out, current char animating in
+    setPrevChar(lastCharRef.current);
+    setDisplayChar(char);
+    setAnimating(true);
+
+    const t = setTimeout(() => {
+      setAnimating(false);
+      lastCharRef.current = char;
+    }, duration + 40);
+
+    return () => clearTimeout(t);
+  }, [char, duration, reducedMotion, mode]);
 
   const effectiveMode = reducedMotion ? 'normal' : mode;
 
@@ -49,8 +52,8 @@ function TickDigit({ char, mode, duration, reducedMotion }) {
   if (effectiveMode === 'fade') {
     return (
       <span className={`tdigit tmode-fade ${animating ? 'is-animating' : ''}`} style={{ '--tanim-dur': `${duration}ms` }}>
-        <span className={`tdigit-inner tinner-prev ${animating && direction === 'out' ? 'fade-out' : ''}`}>{prevChar}</span>
-        <span className={`tdigit-inner tinner-current ${animating && direction === 'in' ? 'fade-in' : ''}`}>{char}</span>
+        <span className={`tdigit-layer tprev ${animating ? 'fade-out' : ''}`}>{prevChar}</span>
+        <span className={`tdigit-layer tcurr ${animating ? 'fade-in' : ''}`}>{displayChar}</span>
       </span>
     );
   }
@@ -58,8 +61,8 @@ function TickDigit({ char, mode, duration, reducedMotion }) {
   if (effectiveMode === 'slide') {
     return (
       <span className={`tdigit tmode-slide ${animating ? 'is-animating' : ''}`} style={{ '--tanim-dur': `${duration}ms` }}>
-        <span className={`tdigit-inner tinner-stack tinner-prev ${animating && direction === 'out' ? 'slide-out' : ''}`}>{prevChar}</span>
-        <span className={`tdigit-inner tinner-stack tinner-current ${animating && direction === 'in' ? 'slide-in' : ''}`}>{char}</span>
+        <span className={`tdigit-layer tprev ${animating ? 'slide-out' : ''}`}>{prevChar}</span>
+        <span className={`tdigit-layer tcurr ${animating ? 'slide-in' : ''}`}>{displayChar}</span>
       </span>
     );
   }
@@ -67,8 +70,8 @@ function TickDigit({ char, mode, duration, reducedMotion }) {
   if (effectiveMode === 'bounce') {
     return (
       <span className={`tdigit tmode-bounce ${animating ? 'is-animating' : ''}`} style={{ '--tanim-dur': `${duration}ms` }}>
-        <span className={`tdigit-inner tinner-stack tinner-prev ${animating && direction === 'out' ? 'bounce-out' : ''}`}>{prevChar}</span>
-        <span className={`tdigit-inner tinner-stack tinner-current ${animating && direction === 'in' ? 'bounce-in' : ''}`}>{char}</span>
+        <span className={`tdigit-layer tprev ${animating ? 'slide-out' : ''}`}>{prevChar}</span>
+        <span className={`tdigit-layer tcurr ${animating ? 'bounce-in' : ''}`}>{displayChar}</span>
       </span>
     );
   }
@@ -76,8 +79,8 @@ function TickDigit({ char, mode, duration, reducedMotion }) {
   if (effectiveMode === 'droplet') {
     return (
       <span className={`tdigit tmode-droplet ${animating ? 'is-animating' : ''}`} style={{ '--tanim-dur': `${duration}ms` }}>
-        <span className={`tdigit-inner tinner-stack tinner-prev ${animating && direction === 'out' ? 'droplet-out' : ''}`}>{prevChar}</span>
-        <span className={`tdigit-inner tinner-stack tinner-current ${animating && direction === 'in' ? 'droplet-in' : ''}`}>{char}</span>
+        <span className={`tdigit-layer tprev ${animating ? 'droplet-out' : ''}`}>{prevChar}</span>
+        <span className={`tdigit-layer tcurr ${animating ? 'droplet-in' : ''}`}>{displayChar}</span>
       </span>
     );
   }
@@ -91,7 +94,11 @@ function TickDigit({ char, mode, duration, reducedMotion }) {
 
 function AnimatedTime({ value, mode = 'normal', speed = 'balanced', reducedMotion = false }) {
   const durations = getAnimationDurations(speed);
-  const modeDur = mode === 'droplet' ? durations.droplet : mode === 'slide' ? durations.slide : mode === 'bounce' ? durations.bounce : mode === 'fade' ? durations.fade : 0;
+  let modeDur = 0;
+  if (mode === 'droplet') modeDur = durations.droplet;
+  else if (mode === 'slide') modeDur = durations.slide;
+  else if (mode === 'bounce') modeDur = durations.bounce;
+  else if (mode === 'fade') modeDur = durations.fade;
 
   return (
     <span className="animated-time" aria-hidden="true">

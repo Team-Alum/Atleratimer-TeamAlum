@@ -793,32 +793,35 @@
 }
 
 .timer-countdown-text {
-  /* MM:SS stays large; the HH:MM:SS variant below scales down to avoid
-     overflow in the circular dial. Both values are relative to the dial
-     width (container query units). */
-  font-size: clamp(24px, 17cqw, var(--dial-countdown, 68px));
-  font-weight: 700;
-  letter-spacing: -0.04em;
+  /* Timer digits are the focal point - use a wider, more legible font
+     with stable numeric widths to avoid the narrow look. */
+  font-size: clamp(28px, 19.5cqw, var(--dial-countdown, 76px));
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
   line-height: 1;
-  margin-bottom: 8px;
-  font-family: inherit;
+  margin-bottom: 10px;
+  font-family: var(--font-timer);
   height: 1em;
-  max-width: 95%;
+  max-width: 96%;
   white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: center;
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "ss01" 1;
   text-align: center;
   flex-wrap: nowrap;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .timer-countdown-text.is-hhmmss {
-  font-size: clamp(14px, 10cqw, 34px);
-  letter-spacing: -0.03em;
-  max-width: 97%;
-  gap: 4px;
+  font-size: clamp(18px, 13.5cqw, 48px);
+  letter-spacing: -0.005em;
+  max-width: 98%;
+  gap: 6px;
 }
 
 .timer-duration-button--hhmmss {
@@ -1986,11 +1989,13 @@
   }
 
   .timer-countdown-text {
-    max-width: 96%;
+    max-width: 97%;
+    margin-bottom: 12px;
   }
 
   .timer-countdown-text.is-hhmmss {
-    max-width: 98%;
+    max-width: 99%;
+    margin-bottom: 12px;
   }
 
   .timer-controls-row {

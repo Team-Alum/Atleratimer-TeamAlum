@@ -70,18 +70,17 @@ function DashboardHeader({ onOpenMobileMenu }) {
 
   return (
     <header className="dashboard-header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div className="header-identity">
         {onOpenMobileMenu && (
           <button
             className="icon-button mobile-menu-btn"
             onClick={onOpenMobileMenu}
             aria-label="Open sidebar navigation"
-            style={{ display: 'none' }}
           >
             <Menu size={18} />
           </button>
         )}
-        <div>
+        <div className="header-titles">
           <div className="header-date">{dateStr}</div>
           <h1 className="header-title">{currentTitle}</h1>
         </div>
@@ -105,6 +104,7 @@ function DashboardHeader({ onOpenMobileMenu }) {
             onClick={() => toggleTheme('light')}
             role="radio"
             aria-checked={theme === 'light'}
+            aria-label="Light theme"
           >
             <Sun size={14} strokeWidth={2.2} />
             <span>Light</span>
@@ -114,6 +114,7 @@ function DashboardHeader({ onOpenMobileMenu }) {
             onClick={() => toggleTheme('dark')}
             role="radio"
             aria-checked={theme === 'dark'}
+            aria-label="Dark theme"
           >
             <Moon size={14} strokeWidth={2.2} />
             <span>Dark</span>

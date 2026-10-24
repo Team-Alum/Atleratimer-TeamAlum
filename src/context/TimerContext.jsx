@@ -10,6 +10,10 @@ import { notificationService } from '../services/notificationService';
 import { syncService } from '../services/syncService';
 import { useAuth } from './useAuth';
 import { applyAtmosphere, getAtmosphereRing } from '../theme/atmospheres';
+import {
+  getDurationLimit,
+  getDurationSettingKey,
+} from '../constants/durations';
 import confetti from 'canvas-confetti';
 
 // Merge cloud sessions into the local data blob. Pure: it returns the next
@@ -479,6 +483,50 @@ export function TimerProvider({ children }) {
     }));
   }, [focusDuration, shortBreakDuration, longBreakDuration, publishCountdown]);
 
+  // Inline duration editing.
+  //
+  // Changes the duration of the session type that is currently on the dial and
+  // applies it to the existing timer — no new timer or interval is created.
+  // The timer must be idle or paused: silently rewriting a live countdown is
+  // never allowed, so the editor asks the student to pause first.
+  const applyDuration = useCallback((nextMinutes) => {
+    const limit = getDurationLimit(mode);
+    const minutes = Math.round(Number(nextMinutes));
+
+    if (!Number.isFinite(minutes)) return false;
+    if (minutes < limit.minMinutes || minutes > limit.maxMinutes) return false;
+    if (isRunning) return false;
+
+    // Defensive: the interval should already be stopped while paused, but a
+    // dead interval must never survive a duration change.
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+    endTimestampRef.current = null;
+
+    const total = minutes * 60;
+    const settingKey = getDurationSettingKey(mode);
+
+    publishCountdown(total);
+    setData((prev) => ({
+      ...prev,
+      timerSettings: {
+        ...prev.timerSettings,
+        [settingKey]: minutes,
+      },
+      timerState: {
+        ...prev.timerState,
+        remainingSeconds: total,
+        totalSeconds: total,
+        isRunning: false,
+        lastStartedAt: null,
+        expectedEndAt: null,
+      },
+    }));
+    return true;
+  }, [mode, isRunning, publishCountdown]);
+
   // Update session title
   const setSessionTitle = useCallback((title) => {
     setData((prev) => ({
@@ -509,14 +557,21 @@ export function TimerProvider({ children }) {
   // Keyboard shortcut handler
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Don't intercept if user is typing in input or textarea
+      // Don't intercept while a dialog (duration editor, history modal) is
+      // open, or while the user is typing in a form control.
       const target = e.target;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+      if (target && typeof target.closest === 'function' && target.closest('[role="dialog"]')) {
+        return;
+      }
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) {
         return;
       }
 
-      // Space to toggle pause/resume
+      // Space to toggle pause/resume. A focused button/link handles Space
+      // natively, so intercepting it here would double-trigger the action.
+      const isInteractive = target && (target.tagName === 'BUTTON' || target.tagName === 'A' || target.getAttribute?.('role') === 'button');
       if (e.code === 'Space') {
+        if (isInteractive) return;
         e.preventDefault();
         toggleTimer();
       }
@@ -616,6 +671,7 @@ export function TimerProvider({ children }) {
     toggleTimer,
     resetTimer,
     switchPreset,
+    applyDuration,
     pullFromCloud,
   }), [
     toggleTheme,
@@ -626,6 +682,7 @@ export function TimerProvider({ children }) {
     toggleTimer,
     resetTimer,
     switchPreset,
+    applyDuration,
     pullFromCloud,
   ]);
 

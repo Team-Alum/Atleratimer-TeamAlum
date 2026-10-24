@@ -9,7 +9,6 @@ import SettingsView from '../views/SettingsView';
 import SessionHistoryModal from '../stats/SessionHistoryModal';
 import Watermark from './Watermark';
 import AmbientBackground from '../../ambient/AmbientBackground';
-import { Menu, Hourglass } from 'lucide-react';
 
 export default function AppShell() {
   const { activeView, showHistoryModal, data, theme } = useTimerState();
@@ -32,22 +31,7 @@ export default function AppShell() {
         theme={theme}
       />
 
-      {/* Mobile Top Navigation Bar */}
-      <div className="mobile-top-bar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div className="brand-icon-box" style={{ width: 34, height: 34, borderRadius: 8 }}>
-            <Hourglass size={18} />
-          </div>
-          <span style={{ fontWeight: 700, fontSize: 16 }}>Atleratimer</span>
-        </div>
-        <button
-          className="icon-button"
-          onClick={openMobileMenu}
-          aria-label="Open navigation menu"
-        >
-          <Menu size={20} />
-        </button>
-      </div>
+      {/* Mobile navigation lives in the single dashboard header (compact) */}
 
       {/* Responsive Sidebar */}
       <Sidebar

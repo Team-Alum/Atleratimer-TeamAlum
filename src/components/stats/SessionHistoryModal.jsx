@@ -48,8 +48,8 @@ function SessionHistoryModal({ isOpen, onClose }) {
         </div>
 
         {/* Filter & Export actions */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div style={{ display: 'flex', gap: 8 }}>
+        <div className="modal-toolbar">
+          <div className="modal-filter-row">
             {['all', 'focus', 'break'].map((f) => (
               <button
                 key={f}
@@ -62,21 +62,21 @@ function SessionHistoryModal({ isOpen, onClose }) {
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="modal-action-row">
             <button
               onClick={handleExportJSON}
-              className="btn-secondary"
-              style={{ padding: '6px 12px', fontSize: 12 }}
+              className="btn-secondary modal-action-btn"
               title="Export session data to JSON"
+              aria-label="Export session data to JSON"
             >
               <Download size={14} />
               <span>Export</span>
             </button>
             <button
               onClick={handleClearHistory}
-              className="btn-secondary"
-              style={{ padding: '6px 12px', fontSize: 12, color: '#EF4444' }}
+              className="btn-secondary modal-action-btn danger"
               title="Clear all session history"
+              aria-label="Clear all session history"
             >
               <Trash2 size={14} />
               <span>Clear</span>
@@ -85,50 +85,34 @@ function SessionHistoryModal({ isOpen, onClose }) {
         </div>
 
         {/* History items list */}
-        <div style={{ maxHeight: 380, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="modal-list">
           {filtered.length === 0 ? (
-            <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+            <div className="modal-empty">
               No recorded sessions found.
             </div>
           ) : (
             filtered.map((item) => (
               <div
                 key={item.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 14px',
-                  borderRadius: 14,
-                  backgroundColor: 'var(--surface-soft)',
-                }}
+                className="modal-history-item"
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '50%',
-                      backgroundColor: item.completed ? 'var(--completed-bg)' : 'var(--accent-soft)',
-                      color: item.completed ? 'var(--accent-teal)' : 'var(--accent-teal)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
+                    className={`modal-history-icon ${item.completed ? 'completed' : 'active'}`}
                   >
                     {item.completed ? <Check size={16} strokeWidth={2.5} /> : <Clock size={16} />}
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <div className="modal-history-title">
                       {item.title}
                     </div>
-                    <div style={{ fontSize: 11.5, color: 'var(--text-secondary)' }}>
+                    <div className="modal-history-meta">
                       {item.date} · {item.startTime} · {item.completed ? 'Completed' : 'In progress'}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                <div className="modal-history-duration">
                   {item.durationMinutes} min
                 </div>
               </div>

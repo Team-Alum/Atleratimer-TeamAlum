@@ -461,9 +461,13 @@
 
 .svg-ring-wrapper {
   position: relative;
-  width: 320px;
-  height: 320px;
+  width: min(320px, 100%);
+  height: auto;
+  aspect-ratio: 1 / 1;
   max-width: 100%;
+  /* Countdown type scales with the dial, not the viewport, so HH:MM:SS can
+     never spill outside the ring. */
+  container-type: inline-size;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -490,6 +494,291 @@
   border-radius: 50%;
   pointer-events: none;
   text-align: center;
+  gap: 4px;
+  padding: 0 12%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* The countdown is an interactive edit control, so re-enable pointer events
+   for it even though the rest of the overlay stays click-through. */
+.timer-inner-content button {
+  pointer-events: auto;
+}
+
+/* Make the duration look tappable and editable */
+.timer-duration-button {
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 999px;
+}
+
+.timer-duration-button:hover {
+  opacity: 0.88;
+}
+
+.timer-duration-button:active {
+  transform: scale(0.985);
+}
+
+.timer-duration-button:focus-visible {
+  outline: 2px solid var(--accent-teal);
+  outline-offset: 6px;
+  border-radius: 999px;
+}
+
+.timer-duration-edit-icon {
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+.timer-duration-button:hover .timer-duration-edit-icon,
+.timer-duration-button:focus-visible .timer-duration-edit-icon {
+  color: var(--accent-teal);
+}
+
+/* Duration editor overlay + panel */
+.duration-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: radial-gradient(120% 120% at 50% 0%, rgba(7, 133, 150, 0.12), transparent 60%),
+              rgba(8, 12, 18, 0.48);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: duration-fade-in 0.18s ease;
+}
+
+@keyframes duration-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.duration-editor {
+  width: min(420px, 100%);
+  background-color: var(--surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: calc(var(--card-radius) - 6px);
+  box-shadow: 0 40px 70px -40px rgba(8, 12, 18, 0.6);
+  padding: clamp(18px, 4vw, 26px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+  animation: duration-scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+}
+
+@keyframes duration-scale-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.duration-editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.duration-editor-title {
+  font-size: clamp(16px, 2vw, 19px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.duration-editor-subtitle {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.duration-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+}
+
+.duration-close-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--surface-soft);
+}
+
+.duration-locked {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background-color: var(--accent-soft);
+  color: var(--accent-teal);
+}
+
+.duration-locked-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12.5px;
+  flex: 1;
+}
+
+.duration-locked-action {
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.duration-units {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.duration-unit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.duration-unit-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.duration-stepper {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background-color: var(--surface-primary);
+  overflow: hidden;
+}
+
+.duration-step-btn {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.duration-step-btn:hover:not(:disabled) {
+  color: var(--accent-teal);
+  background-color: var(--accent-soft);
+}
+
+.duration-step-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.duration-number {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: clamp(28px, 8vw, 38px);
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: 4px 0;
+}
+
+.duration-number:focus {
+  outline: none;
+}
+
+.duration-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.duration-summary.invalid {
+  color: #f59e0b;
+}
+
+.duration-error {
+  font-size: 12.5px;
+  color: #f59e0b;
+}
+
+.duration-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.duration-editor-actions .btn-primary-action {
+  min-width: 110px;
+}
+
+.duration-editor-actions .btn-primary-action:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.duration-editor-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 560px) {
+  .duration-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .duration-editor {
+    width: 100%;
+    border-radius: 22px 22px 0 0;
+    max-height: min(92dvh, 520px);
+    padding: 18px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .duration-units {
+    gap: 10px;
+  }
+
+  .duration-stepper {
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+  }
+
+  .duration-step-btn {
+    height: 48px;
+  }
 }
 
 .timer-mode-tag {
@@ -502,7 +791,10 @@
 }
 
 .timer-countdown-text {
-  font-size: var(--dial-countdown, 68px);
+  /* MM:SS stays large; the HH:MM:SS variant below scales down to avoid
+     overflow in the circular dial. Both values are relative to the dial
+     width (container query units). */
+  font-size: clamp(24px, 17cqw, var(--dial-countdown, 68px));
   font-weight: 700;
   letter-spacing: -0.04em;
   color: var(--text-primary);
@@ -510,9 +802,30 @@
   margin-bottom: 8px;
   font-family: inherit;
   height: 1em;
+  max-width: 95%;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  flex-wrap: nowrap;
+}
+
+.timer-countdown-text.is-hhmmss {
+  font-size: clamp(14px, 10cqw, 34px);
+  letter-spacing: -0.03em;
+  max-width: 97%;
+  gap: 4px;
+}
+
+.timer-duration-button--hhmmss {
+  gap: 6px;
+}
+
+.timer-duration-button--hhmmss .timer-duration-edit-icon {
+  width: 11px;
+  height: 11px;
 }
 
 .timer-sub-status {
@@ -562,9 +875,48 @@
   --dial-countdown: 68px;
 }
 
-.dial-comfort--compact { --dial-countdown: 64px; }
-.dial-comfort--balanced { --dial-countdown: 68px; }
-.dial-comfort--spacious { --dial-countdown: 72px; }
+/* Make the duration look tappable and editable */
+.timer-duration-button {
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 999px;
+}
+
+.timer-duration-button:hover {
+  opacity: 0.88;
+}
+
+.timer-duration-button:active {
+  transform: scale(0.985);
+}
+
+.timer-duration-button:focus-visible {
+  outline: 2px solid var(--accent-teal);
+  outline-offset: 6px;
+  border-radius: 999px;
+}
+
+.timer-duration-edit-icon {
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+.timer-duration-button:hover .timer-duration-edit-icon,
+.timer-duration-button:focus-visible .timer-duration-edit-icon {
+  color: var(--accent-teal);
+}
 
 .dial-progress {
   transition: stroke-dashoffset 0.3s linear;
@@ -1313,9 +1665,11 @@
   border-radius: var(--card-radius);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   width: 100%;
-  max-width: 520px;
-  padding: 28px;
+  max-width: 600px;
+  padding: clamp(18px, 4vw, 28px);
   animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
 }
 
 @keyframes modalIn {
@@ -1347,7 +1701,99 @@
   background-color: var(--surface-soft);
 }
 
-/* Form controls */
+.modal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.modal-filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.modal-action-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.modal-action-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.modal-action-btn.danger {
+  color: #EF4444;
+}
+
+.modal-list {
+  max-height: min(380px, 50dvh);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-empty {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.modal-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background-color: var(--surface-soft);
+  min-width: 0;
+}
+
+.modal-history-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.modal-history-icon.active {
+  background-color: var(--accent-soft);
+  color: var(--accent-teal);
+}
+
+.modal-history-icon.completed {
+  background-color: var(--completed-bg);
+  color: var(--accent-teal);
+}
+
+.modal-history-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.modal-history-meta {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.modal-history-duration {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
 .form-group {
   margin-bottom: 18px;
 }
@@ -1497,7 +1943,7 @@
   }
 
   .main-workspace {
-    padding: 20px 16px;
+    padding: 18px 14px calc(18px + env(safe-area-inset-bottom, 0px));
     width: 100%;
     min-width: 0;
   }
@@ -1525,23 +1971,45 @@
   .timer-card-header-right {
     width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .svg-ring-wrapper {
-    width: 260px;
-    height: 260px;
+    width: min(280px, 90vw);
+    height: auto;
+    aspect-ratio: 1 / 1;
   }
 
   .timer-countdown-text {
-    font-size: 52px;
+    max-width: 96%;
+  }
+
+  .timer-countdown-text.is-hhmmss {
+    max-width: 98%;
   }
 
   .timer-controls-row {
     flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .btn-primary-action {
+    min-width: 120px;
+    padding: 12px 28px;
+  }
+
+  .btn-secondary {
+    padding: 12px 22px;
   }
 
   .presets-row {
     flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .preset-pill {
+    padding: 8px 16px;
   }
 
   .timer-card-footer {
@@ -3667,5 +4135,310 @@ html.atlera-focus-fullscreen .music-panel {
   .upcoming-card:hover,
   .music-pill:hover {
     transform: none !important;
+  }
+}
+
+/* ==========================================================================
+   Responsive composition refinements (tablet + mobile)
+   ========================================================================== */
+
+.header-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.header-titles {
+  min-width: 0;
+}
+
+.mobile-menu-btn {
+  display: none;
+}
+
+/* Tablet: the dashboard is already a single column below 1100px. Give the
+   secondary statistics a comfortable two-up rhythm instead of stretching
+   each card across the full workspace. */
+@media (min-width: 769px) and (max-width: 1100px) {
+  .stats-column {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    align-items: stretch;
+  }
+
+  .stats-column > .stat-card:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Trim long labels instead of letting them push card content around. */
+.log-item {
+  gap: 10px;
+  min-width: 0;
+}
+
+.log-item-left {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.log-item-left > div:last-child {
+  min-width: 0;
+}
+
+.log-title,
+.log-sub {
+  overflow-wrap: anywhere;
+}
+
+.log-time-right {
+  flex-shrink: 0;
+}
+
+.upcoming-card-left {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.upcoming-card-left > div:last-child {
+  min-width: 0;
+}
+
+.upcoming-title,
+.upcoming-subtitle {
+  overflow-wrap: anywhere;
+}
+
+.modal-history-item > div {
+  min-width: 0;
+}
+
+.modal-history-title {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 768px) {
+  /* Single compact header: menu + title + theme/notifications. */
+  .main-workspace {
+    padding:
+      calc(16px + env(safe-area-inset-top, 0px))
+      max(16px, env(safe-area-inset-right, 0px))
+      calc(24px + env(safe-area-inset-bottom, 0px))
+      max(16px, env(safe-area-inset-left, 0px));
+  }
+
+  .app-sidebar {
+    padding-top: calc(20px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .dashboard-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .header-identity {
+    flex: 1 1 auto;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  .header-date {
+    font-size: 9.5px;
+    letter-spacing: 0.07em;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-title {
+    font-size: 18px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-actions {
+    width: auto;
+    flex-shrink: 0;
+    gap: 8px;
+  }
+
+  .header-actions .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .theme-toggle-btn {
+    min-height: 40px;
+    padding: 8px 11px;
+  }
+
+  /* Timer: keep the dial centred and the controls within thumb reach. */
+  .timer-card {
+    padding: 18px 16px;
+  }
+
+  .timer-card-header {
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .timer-card-header-right {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .circular-timer-container {
+    margin: 4px 0 18px;
+  }
+
+  .timer-controls-row {
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .timer-controls-row .btn-secondary,
+  .timer-controls-row .btn-primary-action {
+    flex: 1 1 0;
+    min-height: 48px;
+  }
+
+  .presets-row {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .preset-pill {
+    flex: 1 1 auto;
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
+  .upcoming-info-row {
+    font-size: 12px;
+    line-height: 1.45;
+    text-align: center;
+    padding: 0 4px;
+    margin-bottom: 16px;
+  }
+
+  .timer-card-footer {
+    padding-top: 12px;
+  }
+
+  .sound-toggle-btn {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
+  .upcoming-card {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .upcoming-icon-box {
+    width: 34px;
+    height: 34px;
+  }
+
+  .stat-card {
+    padding: 18px;
+  }
+
+  .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .nav-item {
+    min-height: 46px;
+  }
+
+  .view-all-btn {
+    min-height: 40px;
+    padding: 4px 8px;
+  }
+
+  .duration-step-btn {
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .theme-toggle-btn span {
+    display: none;
+  }
+
+  .theme-toggle-btn {
+    padding: 10px 11px;
+  }
+
+  .header-title {
+    font-size: 17px;
+  }
+
+  .modal-toolbar {
+    align-items: flex-start;
+  }
+
+  .modal-action-row {
+    width: 100%;
+  }
+
+  .modal-action-btn {
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 40px;
+  }
+}
+
+/* Visible keyboard focus everywhere, without changing mouse interactions. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role='button']:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent-teal);
+  outline-offset: 2px;
+}
+
+/* The editor's internal value input draws focus on its pill instead. */
+.duration-number:focus-visible {
+  outline: none;
+}
+
+.duration-stepper:focus-within {
+  border-color: var(--accent-teal);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .duration-overlay,
+  .duration-editor {
+    animation: none !important;
+  }
+
+  .timer-duration-button,
+  .duration-editor {
+    transition: none !important;
   }
 }

@@ -1,6 +1,7 @@
-import React, { memo, useEffect, useState } from 'react';
+import React, { memo, useCallback, useEffect, useState } from 'react';
 import { useTimerState, useTimerActions } from '../../context/useTimer';
 import CircularTimer from './CircularTimer';
+import DurationEditor from './DurationEditor';
 import TimerControls from './TimerControls';
 import FocusFullscreen from './FocusFullscreen';
 import { BookOpen, Pencil, Check, Maximize2 } from 'lucide-react';
@@ -13,6 +14,10 @@ function FocusTimerCard() {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(sessionTitle);
   const [focusMode, setFocusMode] = useState(false);
+  const [durationEditorOpen, setDurationEditorOpen] = useState(false);
+
+  const openDurationEditor = useCallback(() => setDurationEditorOpen(true), []);
+  const closeDurationEditor = useCallback(() => setDurationEditorOpen(false), []);
 
   // Browser fullscreen + app state (state lives in TimerContext; never reset)
   useEffect(() => {
@@ -119,10 +124,13 @@ function FocusTimerCard() {
       </div>
 
       {/* SVG Circular Countdown */}
-      <CircularTimer />
+      <CircularTimer onEditDuration={openDurationEditor} />
 
       {/* Timer Controls, Presets & Ambient info */}
       <TimerControls />
+
+      {/* Compact inline duration editor (portal, uses the same timer state) */}
+      {durationEditorOpen && <DurationEditor onClose={closeDurationEditor} />}
 
       {/* Dedicated fullscreen focus layout (single timer instance) */}
       {focusMode && <FocusFullscreen onExit={exitFocusMode} />}

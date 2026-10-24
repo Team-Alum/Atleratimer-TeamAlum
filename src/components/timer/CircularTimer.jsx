@@ -1,11 +1,13 @@
 import React from 'react';
+import { Pencil } from 'lucide-react';
 import { useTimerState, useTimerCountdown } from '../../context/useTimer';
 import AnimatedTime from './AnimatedTime';
 import DialFace from './DialFace';
 import { getDialLook } from './dialStyle';
 import { getAtmosphereRing } from '../../theme/atmospheres';
+import { formatDurationLabel } from '../../constants/durations';
 
-export default function CircularTimer() {
+export default function CircularTimer({ onEditDuration }) {
   const { timerState, timerSettings, data, theme } = useTimerState();
   const { remainingSeconds } = useTimerCountdown();
   const { totalSeconds, isRunning, mode, cycleIndex } = timerState;
@@ -55,11 +57,24 @@ export default function CircularTimer() {
   const totalFormatted = String(timerSettings.sessionsPerCycle).padStart(2, '0');
   const sessionCycleText = `SESSION ${currentFormatted} / ${totalFormatted}`;
 
+  const durationLabel = formatDurationLabel(Math.max(0, Math.ceil(remainingSeconds / 60)));
+  const isHHMMSS = totalHours >= 1;
+  const countdownClass = `timer-countdown-text${isHHMMSS ? ' is-hhmmss' : ''}`;
+  const durationButtonClass = `timer-duration-button${isHHMMSS ? ' timer-duration-button--hhmmss' : ''}`;
+  const animatedTime = (
+    <AnimatedTime
+      value={timeString}
+      mode={data?.digitAnimation?.mode || 'normal'}
+      speed={data?.digitAnimation?.speed || 'balanced'}
+      reducedMotion={!!data?.reducedMotion}
+    />
+  );
+
   return (
     <div
       className="circular-timer-container"
       role="group"
-      aria-label={`Timer countdown: ${timeString}`}
+      aria-label={`Timer countdown: ${durationLabel} remaining`}
     >
       <DialFace
         progress={progress}
@@ -69,14 +84,21 @@ export default function CircularTimer() {
         style={look.vars}
       >
         <div className="timer-mode-tag">{modeTag}</div>
-        <div className="timer-countdown-text tabular-nums">
-          <AnimatedTime
-            value={timeString}
-            mode={data?.digitAnimation?.mode || 'normal'}
-            speed={data?.digitAnimation?.speed || 'balanced'}
-            reducedMotion={!!data?.reducedMotion}
-          />
-        </div>
+        {onEditDuration ? (
+          <button
+            type="button"
+            className={`${countdownClass} ${durationButtonClass}`}
+            onClick={onEditDuration}
+            aria-label={`Edit timer duration. Current duration is ${durationLabel}.`}
+            aria-haspopup="dialog"
+            title="Edit timer duration"
+          >
+            {animatedTime}
+            <Pencil className="timer-duration-edit-icon" size={13} strokeWidth={2.2} aria-hidden="true" />
+          </button>
+        ) : (
+          <div className={countdownClass}>{animatedTime}</div>
+        )}
         <div className={`timer-sub-status ${isRunning ? 'running' : ''}`}>
           <span className="status-dot-pulse" />
           <span>{subStatus}</span>

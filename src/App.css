@@ -232,7 +232,7 @@
 
 /* Main Workspace */
 .main-workspace {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   padding: 28px 36px 32px;
@@ -240,6 +240,7 @@
   margin: 0 auto;
   width: 100%;
   min-width: 0;
+  overflow-x: hidden;
   position: relative;
   z-index: var(--z-base);
 }
@@ -338,6 +339,7 @@
   gap: 22px;
   margin-bottom: 22px;
   align-items: start;
+  min-width: 0;
 }
 
 /* Primary Timer Card */
@@ -1895,13 +1897,14 @@
 /* Responsive queries */
 @media (max-width: 1100px) {
   .dashboard-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .bottom-cards-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .main-workspace {
     padding: 24px 20px;
+    overflow-x: hidden;
   }
 }
 
@@ -1946,6 +1949,7 @@
     padding: 18px 14px calc(18px + env(safe-area-inset-bottom, 0px));
     width: 100%;
     min-width: 0;
+    overflow-x: hidden;
   }
 
   .dashboard-header {

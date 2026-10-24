@@ -796,12 +796,12 @@
   /* Timer digits are the focal point - use a wider, more legible font
      with stable numeric widths to avoid the narrow look. */
   font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  font-size: clamp(48px, 34cqw, var(--dial-countdown, 108px));
-  font-weight: 800;
-  letter-spacing: -0.008em;
+  font-size: clamp(56px, 38cqw, var(--dial-countdown, 124px));
+  font-weight: 900;
+  letter-spacing: -0.005em;
   color: var(--text-primary);
-  line-height: 0.94;
-  margin-bottom: 4px;
+  line-height: 0.93;
+  margin-bottom: 2px;
   height: 1em;
   max-width: 100%;
   white-space: nowrap;
@@ -816,13 +816,16 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  transform: scale(1.02);
+  transform-origin: center;
 }
 
 .timer-countdown-text.is-hhmmss {
-  font-size: clamp(36px, 26cqw, 76px);
-  letter-spacing: -0.006em;
+  font-size: clamp(42px, 30cqw, 88px);
+  letter-spacing: -0.004em;
   max-width: 100%;
-  gap: 3px;
+  gap: 2px;
+  transform: scale(1.01);
 }
 
 .timer-duration-button--hhmmss {

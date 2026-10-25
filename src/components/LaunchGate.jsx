@@ -3,14 +3,8 @@ import React, { useEffect, useState } from 'react';
 function getTargetTime() {
   try {
     const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-    if (params && params.get('barricade') === 'force') {
-      const now = new Date();
-      const target = new Date(now);
-      target.setHours(9, 0, 0, 0);
-      if (target <= now) {
-        target.setDate(target.getDate() + 1);
-      }
-      return target.getTime();
+    if (params && params.get('barricade') === 'hide') {
+      return null;
     }
   } catch (e) {
     // ignore
@@ -18,9 +12,8 @@ function getTargetTime() {
   const now = new Date();
   const target = new Date(now);
   target.setHours(9, 0, 0, 0);
-  // If it's already past 9 AM today, don't show barricade
   if (target <= now) {
-    return null;
+    target.setDate(target.getDate() + 1);
   }
   return target.getTime();
 }
@@ -38,8 +31,13 @@ export default function LaunchGate({ children }) {
   const [target, setTarget] = useState(() => getTargetTime());
   const [now, setNow] = useState(() => Date.now());
   const [hidden, setHidden] = useState(() => {
+    try {
+      const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      if (params && params.get('barricade') === 'hide') return true;
+    } catch {}
     const t = getTargetTime();
-    return t === null;
+    if (!t) return true;
+    return Date.now() >= t;
   });
 
   useEffect(() => {

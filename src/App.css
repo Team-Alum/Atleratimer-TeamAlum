@@ -2020,21 +2020,26 @@
 
   .app-sidebar {
     position: fixed;
-    left: -290px;
+    left: 0;
     top: 0;
     bottom: 0;
-    width: 260px;
+    width: min(100vw, 420px);
     min-width: 0;
+    transform: translateX(-100%);
     visibility: hidden;
-    transition: left 0.25s ease, visibility 0s linear 0.25s;
-    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.2);
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.28s;
+    box-shadow: 12px 0 40px rgba(0, 0, 0, 0.45);
     z-index: 99;
+    padding: 20px 16px calc(24px + env(safe-area-inset-bottom, 0px)) 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
   }
 
   .app-sidebar.open {
-    left: 0;
+    transform: translateX(0);
     visibility: visible;
-    transition: left 0.25s ease;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .sidebar-backdrop {
@@ -2062,6 +2067,17 @@
   .dashboard-header {
     flex-direction: column;
     gap: 16px;
+  }
+
+  @media (max-width: 480px) {
+    .app-sidebar {
+      width: 100vw;
+      max-width: 100vw;
+      padding: 16px 14px calc(20px + env(safe-area-inset-bottom, 0px)) 14px;
+    }
+    .app-sidebar:has(.music-panel.open) .workspace-badge-row {
+      display: none;
+    }
   }
 
   .header-actions {
@@ -2563,116 +2579,634 @@
   max-height: 230px;
 }
 
-/* ---------- Sidebar-width tuning ------------------------------------------ */
-/* The sidebar content column is ~214px. Compact the panel so search results
-   stay readable and the transport controls fit on one row. */
-.music-panel .mp-controls {
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 6px;
+/* ==========================================================================
+   DESKTOP MUSIC PLAYER EXPERIENCE (769px and above)
+   Spacious desktop sidebar layout: compact, mouse-friendly, space-conscious
+   ========================================================================== */
+@media (min-width: 769px) {
+  .music-panel--inline {
+    width: calc(100% + 24px);
+    margin-left: -12px;
+  }
+
+  .music-panel .mp-controls {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .music-panel .mb-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .music-panel .mp-controls .mb-transport {
+    gap: 2px;
+  }
+
+  .music-panel .mp-secondary {
+    gap: 0;
+    margin-left: auto;
+  }
+
+  .music-panel .mp-volume {
+    order: 3;
+    flex: 1 1 100%;
+  }
+
+  .music-panel .mp-volume .mb-volume-inline {
+    max-width: none;
+  }
+
+  .music-panel .mp-progress {
+    gap: 7px;
+  }
+
+  .music-panel .mp-progress .mb-time {
+    font-size: 10px;
+  }
+
+  .music-panel .mp-search {
+    gap: 6px;
+  }
+
+  .music-panel .mp-search .search-results {
+    max-height: 240px;
+  }
+
+  .music-panel .search-form {
+    gap: 6px;
+  }
+
+  .music-panel .search-submit {
+    padding: 0 10px;
+  }
+
+  .music-panel .search-suggestions {
+    gap: 4px;
+  }
+
+  .music-panel .chip {
+    padding: 4px 9px;
+    font-size: 11px;
+  }
+
+  .music-panel .search-result {
+    gap: 6px;
+    padding: 5px;
+  }
+
+  .music-panel .result-thumb {
+    width: 36px;
+    height: 28px;
+    border-radius: 6px;
+  }
+
+  .music-panel .result-title {
+    font-size: 12px;
+  }
+
+  .music-panel .result-sub {
+    font-size: 10.5px;
+  }
+
+  .music-panel .result-actions {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .music-panel .result-actions .icon-btn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .music-panel .result-flash {
+    font-size: 10px;
+    gap: 2px;
+  }
+
+  .music-panel .add-picker {
+    width: 160px;
+  }
+
+  .music-panel .mp-playlist-btn {
+    padding: 7px 9px;
+    font-size: 11.5px;
+  }
+
+  .music-panel .mp-playlist-menu {
+    max-height: 180px;
+  }
 }
 
-.music-panel .mb-btn {
-  width: 28px;
-  height: 28px;
+/* ==========================================================================
+   MOBILE MUSIC PLAYER EXPERIENCE (320px to 768px)
+   Touch-first, responsive, dedicated phone layout with prominent controls
+   ========================================================================== */
+@media (max-width: 768px) {
+  .sidebar-music {
+    width: 100%;
+    margin-top: 14px;
+    padding-bottom: 8px;
+  }
+
+  .music-root {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Collapsed Pill on Mobile: Generous touch target and clean typography */
+  .music-pill {
+    padding: 6px 10px 6px 6px;
+    min-height: 48px;
+    border-radius: 999px;
+    gap: 8px;
+    box-sizing: border-box;
+  }
+
+  .music-pill .pill-thumb {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+  }
+
+  .music-pill .pill-title {
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+
+  .music-pill .pill-play {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Expanded Panel on Mobile: Full available width, comfortable touch layout */
+  .music-panel,
+  .music-panel--inline {
+    width: 100% !important;
+    margin-left: 0 !important;
+    max-height: min(72vh, 600px);
+    padding: 14px;
+    gap: 12px;
+    border-radius: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 1. Track Information Header */
+  .music-panel .mp-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .music-panel .mp-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .music-panel .mp-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .music-panel .mp-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .music-panel .mp-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .music-panel .mp-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .music-panel .mp-header-actions .mb-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+  }
+
+  .music-panel .mp-header-actions .mb-btn.on {
+    color: var(--accent-teal);
+    border-color: var(--accent-teal);
+  }
+
+  /* 2. Progress and Duration */
+  .music-panel .mp-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 4px 2px;
+    box-sizing: border-box;
+  }
+
+  .music-panel .mp-progress .mb-time {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: 38px;
+    text-align: center;
+  }
+
+  .music-panel .mp-progress .mb-range {
+    flex: 1 1 auto;
+    height: 28px;
+    cursor: pointer;
+    accent-color: var(--accent-teal);
+  }
+
+  /* 3. Controls: Multi-row mobile arrangement */
+  .music-panel .mp-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    padding: 4px 0;
+    box-sizing: border-box;
+  }
+
+  /* Main Transport: Prominent central Play/Pause flanked by Skip Back / Forward */
+  .music-panel .mp-controls .mb-transport {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+    order: 1;
+  }
+
+  .music-panel .mp-controls .mb-transport .mb-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--surface-soft);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.12s ease, background-color 0.15s ease;
+  }
+
+  .music-panel .mp-controls .mb-transport .mb-btn:active {
+    transform: scale(0.94);
+  }
+
+  /* Visually Prominent Central Play/Pause */
+  .music-panel .mp-controls .mb-transport .mb-play {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: var(--accent-teal);
+    border: none;
+    color: #FFFFFF;
+    box-shadow: 0 4px 18px rgba(7, 133, 150, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .music-panel .mp-controls .mb-transport .mb-play:hover:not(:disabled) {
+    background: var(--accent-teal-dark);
+  }
+
+  .music-panel .mp-controls .mb-transport .mb-play:active {
+    transform: scale(0.94);
+  }
+
+  /* Secondary Playback Controls */
+  .music-panel .mp-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    order: 2;
+    margin: 0;
+  }
+
+  .music-panel .mp-secondary .mb-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .music-panel .mp-secondary .mb-btn.on {
+    background: var(--accent-soft);
+    color: var(--accent-teal);
+    border-color: var(--accent-teal);
+  }
+
+  /* 4. Dedicated Responsive Volume Row */
+  .music-panel .mp-volume {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    order: 3;
+    padding: 2px 0;
+    box-sizing: border-box;
+  }
+
+  .music-panel .mp-volume .mb-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .music-panel .mp-volume .mb-volume-inline {
+    flex: 1 1 auto;
+    max-width: none;
+    width: 100%;
+    height: 32px;
+    accent-color: var(--accent-teal);
+    cursor: pointer;
+  }
+
+  /* Vibe / Autoplay Row */
+  .music-panel .mp-vibe {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .music-panel .mp-vibe-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+  }
+
+  .music-panel .mp-vibe-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .music-panel .mp-vibe-label {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .music-panel .mp-vibe-sub {
+    font-size: 11px;
+  }
+
+  .music-panel .mp-vibe-toggle {
+    min-height: 28px;
+    padding: 4px 12px;
+    font-size: 11.5px;
+    border-radius: 999px;
+  }
+
+  /* 5. Search Section */
+  .music-panel .mp-search {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .music-panel .search-form {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .music-panel .search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 42px;
+    font-size: 13.5px;
+    border-radius: 12px;
+    padding: 0 14px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    box-sizing: border-box;
+  }
+
+  .music-panel .search-submit {
+    width: 44px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--accent-teal);
+    color: #FFFFFF;
+    border: none;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .music-panel .search-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .music-panel .chip {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 999px;
+    min-height: 32px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .music-panel .search-results {
+    max-height: 260px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 2px;
+  }
+
+  .music-panel .search-result {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: var(--surface-soft);
+    min-height: 52px;
+    box-sizing: border-box;
+  }
+
+  .music-panel .result-thumb {
+    width: 52px;
+    height: 38px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .music-panel .result-meta {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .music-panel .result-title {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .music-panel .result-sub {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .music-panel .result-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .music-panel .result-actions .icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 6. Playlist Selector */
+  .music-panel .mp-playlists {
+    position: relative;
+    width: 100%;
+  }
+
+  .music-panel .mp-playlist-btn {
+    width: 100%;
+    height: 42px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 12px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+  }
+
+  .music-panel .mp-playlist-menu {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 25;
+    max-height: 220px;
+    border-radius: 14px;
+    padding: 6px;
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .music-panel .mp-playlist-item {
+    padding: 10px 12px;
+    font-size: 13px;
+    border-radius: 10px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
 }
 
-.music-panel .mp-controls .mb-transport {
-  gap: 2px;
-}
+/* Fine-tuning for Ultra-Narrow Viewports (320px to 380px) */
+@media (max-width: 380px) {
+  .music-panel .mp-controls .mb-transport {
+    gap: 14px;
+  }
 
-.music-panel .mp-secondary {
-  gap: 0;
-  margin-left: auto;
-}
+  .music-panel .mp-controls .mb-transport .mb-btn {
+    width: 38px;
+    height: 38px;
+  }
 
-.music-panel .mp-volume {
-  order: 3;
-  flex: 1 1 100%;
-}
+  .music-panel .mp-controls .mb-transport .mb-btn.mb-play {
+    width: 48px;
+    height: 48px;
+  }
 
-.music-panel .mp-volume .mb-volume-inline {
-  max-width: none;
-}
+  .music-panel .mp-secondary {
+    gap: 6px;
+  }
 
-.music-panel .mp-progress {
-  gap: 7px;
-}
+  .music-panel .mp-secondary .mb-btn {
+    width: 36px;
+    height: 36px;
+  }
 
-.music-panel .mp-progress .mb-time {
-  font-size: 10px;
-}
-
-.music-panel .mp-search {
-  gap: 6px;
-}
-
-.music-panel .mp-search .search-results {
-  max-height: 240px;
-}
-
-.music-panel .search-form {
-  gap: 6px;
-}
-
-.music-panel .search-submit {
-  padding: 0 10px;
-}
-
-.music-panel .search-suggestions {
-  gap: 4px;
-}
-
-.music-panel .chip {
-  padding: 4px 9px;
-  font-size: 11px;
-}
-
-.music-panel .search-result {
-  gap: 6px;
-  padding: 5px;
-}
-
-.music-panel .result-thumb {
-  width: 36px;
-  height: 28px;
-  border-radius: 6px;
-}
-
-.music-panel .result-title {
-  font-size: 12px;
-}
-
-.music-panel .result-sub {
-  font-size: 10.5px;
-}
-
-.music-panel .result-actions {
-  flex-direction: column;
-  gap: 2px;
-}
-
-.music-panel .result-actions .icon-btn {
-  width: 24px;
-  height: 24px;
-}
-
-.music-panel .result-flash {
-  font-size: 10px;
-  gap: 2px;
-}
-
-.music-panel .add-picker {
-  width: 160px;
-}
-
-.music-panel .mp-playlist-btn {
-  padding: 7px 9px;
-  font-size: 11.5px;
-}
-
-.music-panel .mp-playlist-menu {
-  max-height: 180px;
+  .music-panel .mp-thumb {
+    width: 38px;
+    height: 38px;
+  }
 }
 
 /* ---------- Same-vibe autoplay row ---------------------------------------- */

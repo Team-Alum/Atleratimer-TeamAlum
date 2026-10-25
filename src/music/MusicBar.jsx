@@ -352,41 +352,18 @@ export default function MusicBar() {
         </Suspense>
 
         {/* Compact playlist selector */}
-        <div className="mp-playlists" ref={pickerRef}>
-          <button
-            type="button"
-            className="mp-playlist-btn"
-            onClick={() => setPickerOpen((v) => !v)}
-            aria-expanded={pickerOpen}
-            aria-haspopup="menu"
-          >
-            <ListMusic size={13} />
-            <span className="mp-playlist-name">{activePlaylist ? activePlaylist.name : 'Choose a playlist'}</span>
-            <ChevronDown size={13} style={{ transform: pickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-          </button>
-          {pickerOpen && (
-            <ul className="mp-playlist-menu" role="menu" aria-label="Playlists">
-              {playlists.length === 0 && (
-                <li className="mp-playlist-empty">No playlists yet — use + on a search result to create one.</li>
-              )}
-              {playlists.map((p) => (
-                <li key={p.id} role="none">
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={`mp-playlist-item${activeId === p.id ? ' active' : ''}`}
-                    onClick={() => { playlistActions.playPlaylist(p.id); setPickerOpen(false); }}
-                    disabled={!p.tracks?.length}
-                    title={p.tracks?.length ? `Play ${p.name}` : `${p.name} is empty`}
-                  >
-                    <span className="mp-playlist-item-name">{p.name}</span>
-                    <span className="mp-playlist-count tabular-nums">{p.tracks?.length || 0}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <PlaylistSelector
+          playlists={playlists}
+          activeId={activeId}
+          activePlaylist={activePlaylist}
+          pickerOpen={pickerOpen}
+          setPickerOpen={setPickerOpen}
+          pickerRef={pickerRef}
+          onSelect={(id) => {
+            playlistActions.playPlaylist(id);
+            setPickerOpen(false);
+          }}
+        />
 
         {playlistsOpen && (
           <Suspense fallback={(
@@ -411,6 +388,55 @@ export default function MusicBar() {
 // The seek bar is the only part of the player that needs the once-a-second
 // progress values, so it lives in its own component: the pill above it stays
 // completely still while a track plays.
+// Separated playlist selector component with accessible popup positioning.
+function PlaylistSelector({
+  playlists,
+  activeId,
+  activePlaylist,
+  pickerOpen,
+  setPickerOpen,
+  pickerRef,
+  onSelect,
+}) {
+  return (
+    <div className="mp-playlists" ref={pickerRef}>
+      <button
+        type="button"
+        className="mp-playlist-btn"
+        onClick={() => setPickerOpen((v) => !v)}
+        aria-expanded={pickerOpen}
+        aria-haspopup="menu"
+      >
+        <ListMusic size={14} className="mp-playlist-icon" />
+        <span className="mp-playlist-name">{activePlaylist ? activePlaylist.name : 'Choose a playlist'}</span>
+        <ChevronDown size={14} style={{ transform: pickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+      </button>
+      {pickerOpen && (
+        <ul className="mp-playlist-menu" role="menu" aria-label="Playlists">
+          {playlists.length === 0 && (
+            <li className="mp-playlist-empty">No playlists yet — use + on a search result to create one.</li>
+          )}
+          {playlists.map((p) => (
+            <li key={p.id} role="none">
+              <button
+                type="button"
+                role="menuitem"
+                className={`mp-playlist-item${activeId === p.id ? ' active' : ''}`}
+                onClick={() => onSelect(p.id)}
+                disabled={!p.tracks?.length}
+                title={p.tracks?.length ? `Play ${p.name}` : `${p.name} is empty`}
+              >
+                <span className="mp-playlist-item-name">{p.name}</span>
+                <span className="mp-playlist-count tabular-nums">{p.tracks?.length || 0}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function PlayerProgress() {
   const { currentTime, duration } = useMusicProgress();
   const { actions } = useMusicActions();

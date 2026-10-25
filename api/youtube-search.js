@@ -46,21 +46,6 @@ function truncate(text, max) {
   return String(text || '').slice(0, max);
 }
 
-const NON_MUSIC_REGEX = /\b(podcast|podcasts|episode|episodes?|ep\s*\d+|ep\.\s*\d+|interview|interviews|talk\s*show|talkshow|full\s*episode|roundtable|discussion|q&a|reaction|reacts|vlog|vlogging|vloggers?|standup|stand-up|roast|news\s*live|press conference|documentary|audiobook|webinar|tedx|ted\s*talk|monologue|commentary|the\s+\w+\s+show|show\s*#\d+|trs|clips?)\b|#\s*\d{2,4}\b/i;
-
-function isMusicTrack(it, duration, userQuery) {
-  // If the user deliberately searched for a podcast/interview phrase, allow it
-  if (NON_MUSIC_REGEX.test(userQuery)) return true;
-  const text = `${it.snippet?.title || ''} ${it.snippet?.channelTitle || ''}`;
-  if (NON_MUSIC_REGEX.test(text)) return false;
-  if (/podcast|talks|conversations|interviews|beerbiceps|powerfuljre|huberman|fridman/i.test(it.snippet?.channelTitle || '')) return false;
-  if (duration && duration > 2100) {
-    const isMusicMix = /(music|song|songs|lofi|lo-fi|soundtrack|relaxing|study|beats|instrumental|ambient|chillhop|mix|jukebox|playlist|classical)/i.test(text);
-    if (!isMusicMix) return false;
-  }
-  return true;
-}
-
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200');
 
@@ -137,9 +122,7 @@ export default async function handler(req, res) {
       }
     }
 
-    const musicItems = items.filter((it) => isMusicTrack(it, details.get(it.id.videoId)?.duration, q));
-
-    const results = musicItems.map((it) => {
+    const results = items.map((it) => {
       const d = details.get(it.id.videoId) || {};
       return {
         videoId: it.id.videoId,

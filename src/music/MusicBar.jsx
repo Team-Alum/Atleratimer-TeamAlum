@@ -11,6 +11,7 @@
 //    downloaded the first time they are actually opened.
 
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTimerState, useTimerActions } from '../context/useTimer';
 import { useMusicPlayback, useMusicProgress, useMusicActions } from './MusicPlayerContextInstance';
 import { usePlaylists } from './PlaylistContextInstance';
@@ -19,7 +20,7 @@ import { LANGUAGE_META } from './vibe';
 import {
   Play, Pause, SkipBack, SkipForward, Repeat, Repeat1, Shuffle,
   Volume2, VolumeX, ListMusic, ChevronDown, Lock, Sparkles,
-  Loader2, AlertTriangle, Music2, Waves,
+  Loader2, AlertTriangle, Music2, Waves, X,
 } from 'lucide-react';
 
 // Both panels are only needed once the user actually opens them.
@@ -88,38 +89,23 @@ export default function MusicBar() {
     return () => cancelAnimationFrame(id);
   }, [open]);
 
-  // On short screens the expanded player can be taller than the visible part
-  // of the sidebar. Nudge the sidebar's scroll so the whole player (panel +
-  // pill) is reachable without hunting for it. Harmless when it already fits.
-  useEffect(() => {
-    if (!open) return undefined;
-    const id = requestAnimationFrame(() => {
-      const node = rootRef.current;
-      if (!node) return;
-      const rect = node.getBoundingClientRect();
-      if (rect.bottom > window.innerHeight - 4 || rect.top < 4) {
-        node.scrollIntoView({ block: 'end', behavior: 'smooth' });
-      }
-    });
-    return () => cancelAnimationFrame(id);
-  }, [open]);
-
   // Outside click + Escape collapse the panel (playback keeps running).
-  // Everything now lives inside the sidebar root, so containment is one check.
+  // The expanded panel is portaled into document.body, so containment is checked
+  // against both the sidebar pill and the floating/modal panel.
   useEffect(() => {
     if (!open && !pickerOpen && !playlistsOpen) return undefined;
     const onDown = (e) => {
       const target = e.target;
-      if (!rootRef.current?.contains(target)) {
-        setOpen(false);
-        setPickerOpen(false);
-        setPlaylistsOpen(false);
+      if (rootRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) {
+        if (pickerRef.current && !pickerRef.current.contains(target)) {
+          setPickerOpen(false);
+        }
         return;
       }
-      // Clicking inside the panel but outside the mini picker closes the picker.
-      if (pickerRef.current && !pickerRef.current.contains(target)) {
-        setPickerOpen(false);
-      }
+      setOpen(false);
+      setPickerOpen(false);
+      setPlaylistsOpen(false);
     };
     const onKey = (e) => {
       if (e.key === 'Escape') {
@@ -135,25 +121,6 @@ export default function MusicBar() {
       document.removeEventListener('keydown', onKey);
     };
   }, [open, pickerOpen, playlistsOpen]);
-
-  // The playlist manager opens below the search section, which may be outside
-  // the panel's visible scroll area on short screens. Bring it into view as
-  // soon as it (or its lazy-loading placeholder) appears.
-  useEffect(() => {
-    if (!open || !playlistsOpen) return undefined;
-    const panel = panelRef.current;
-    if (!panel) return undefined;
-    const toBottom = () => panel.scrollTo({ top: panel.scrollHeight, behavior: 'smooth' });
-    const id = requestAnimationFrame(toBottom);
-    const observer = new MutationObserver(toBottom);
-    observer.observe(panel, { childList: true, subtree: true });
-    const timeout = setTimeout(() => observer.disconnect(), 1200);
-    return () => {
-      cancelAnimationFrame(id);
-      observer.disconnect();
-      clearTimeout(timeout);
-    };
-  }, [open, playlistsOpen]);
 
   const collapse = useCallback(() => {
     setOpen(false);
@@ -223,23 +190,28 @@ export default function MusicBar() {
     </div>
   );
 
-  return (
-    <div className="music-root music-root--sidebar" ref={rootRef}>
-      {toast}
+  const expandedPanel = open && (
+    <>
+      <div
+        className="music-backdrop"
+        onClick={collapse}
+        aria-hidden="true"
+      />
 
       <div
         ref={panelRef}
-        className={`music-panel music-panel--inline${open ? ' open' : ''}`}
+        className="music-panel open"
         role="dialog"
         aria-label="Music player"
-        aria-hidden={!open}
-        hidden={!open}
+        aria-modal="true"
       >
+        <div className="mp-mobile-handle" aria-hidden="true" onClick={collapse} />
+
         <div className="mp-header">
           <span className="mp-thumb" aria-hidden="true">
             {track?.thumbnail
-              ? <img src={track.thumbnail} alt="" width={36} height={36} />
-              : <Music2 size={16} />}
+              ? <img src={track.thumbnail} alt="" width={44} height={44} />
+              : <Music2 size={20} />}
           </span>
           <div className="mp-meta">
             <span className="mp-title" title={track?.title}>{track ? track.title : 'Nothing playing'}</span>
@@ -254,10 +226,16 @@ export default function MusicBar() {
               aria-label="Toggle Immersive Music Background"
               aria-pressed={immersiveBackground}
             >
-              <Sparkles size={14} />
+              <Sparkles size={16} />
             </button>
-            <button type="button" className="mb-btn" onClick={collapse} title="Collapse player" aria-label="Collapse player">
-              <ChevronDown size={16} />
+            <button
+              type="button"
+              className="mb-btn mp-close-btn"
+              onClick={collapse}
+              title="Close music player"
+              aria-label="Close music player"
+            >
+              <X size={16} />
             </button>
           </div>
         </div>
@@ -265,16 +243,16 @@ export default function MusicBar() {
         <PlayerProgress />
 
         <div className={`mp-vibe${vibe ? '' : ' empty'}${autoVibe ? '' : ' off'}`}>
-          <span className="mp-vibe-mark" aria-hidden="true"><Waves size={13} /></span>
+          <span className="mp-vibe-mark" aria-hidden="true"><Waves size={14} /></span>
           <span className="mp-vibe-copy">
             <span className="mp-vibe-label" title={vibe?.query || 'Same-vibe autoplay'}>
               {vibe ? vibe.label : 'Same-vibe autoplay'}
             </span>
             <span className="mp-vibe-sub">
               {vibeLoading
-                ? <><Loader2 size={9} className="spin" /> Finding more…</>
+                ? <><Loader2 size={10} className="spin" /> Finding more…</>
                 : vibe
-                  ? <><Lock size={9} /> {languageMeta.label}</>
+                  ? <><Lock size={10} /> {languageMeta.label}</>
                   : 'Keeps the current mood and language'}
             </span>
           </span>
@@ -295,8 +273,8 @@ export default function MusicBar() {
 
         <div className="mp-controls">
           <div className="mb-transport">
-            <button type="button" className="mb-btn" onClick={actions.prev} disabled={!hasPrev && !track} title="Previous track" aria-label="Previous track">
-              <SkipBack size={16} />
+            <button type="button" className="mb-btn mb-prev" onClick={actions.prev} disabled={!hasPrev && !track} title="Previous track" aria-label="Previous track">
+              <SkipBack size={18} />
             </button>
             <button
               type="button"
@@ -306,10 +284,10 @@ export default function MusicBar() {
               title={playing ? 'Pause music' : 'Play music'}
               aria-label={playing ? 'Pause music' : 'Play music'}
             >
-              {playback.isBusy ? <Loader2 size={16} className="spin" /> : playing ? <Pause size={16} /> : <Play size={16} />}
+              {playback.isBusy ? <Loader2 size={18} className="spin" /> : playing ? <Pause size={18} /> : <Play size={18} />}
             </button>
-            <button type="button" className="mb-btn" onClick={actions.next} disabled={!hasNext && queue.length < 2} title="Next track" aria-label="Next track">
-              <SkipForward size={16} />
+            <button type="button" className="mb-btn mb-next" onClick={actions.next} disabled={!hasNext && queue.length < 2} title="Next track" aria-label="Next track">
+              <SkipForward size={18} />
             </button>
           </div>
 
@@ -337,8 +315,8 @@ export default function MusicBar() {
             </button>
             <button
               type="button"
-              className="mb-btn"
-              onClick={() => { setPlaylistsOpen(true); setPickerOpen(false); }}
+              className={`mb-btn${playlistsOpen ? ' on' : ''}`}
+              onClick={() => { setPlaylistsOpen((v) => !v); setPickerOpen(false); }}
               title="Manage playlists"
               aria-label="Manage playlists"
             >
@@ -379,8 +357,14 @@ export default function MusicBar() {
           </Suspense>
         )}
       </div>
+    </>
+  );
 
+  return (
+    <div className="music-root music-root--sidebar" ref={rootRef}>
+      {toast}
       {pill}
+      {typeof document !== 'undefined' && createPortal(expandedPanel, document.body)}
     </div>
   );
 }

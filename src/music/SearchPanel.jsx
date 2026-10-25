@@ -1,15 +1,14 @@
 // Music search section — embedded inside the expanded mini-player panel.
 // Queries the /api/youtube-search serverless proxy (real YouTube results).
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, memo } from 'react';
 import { useMusicPlayback, useMusicActions } from './MusicPlayerContextInstance';
 import { usePlaylists } from './PlaylistContextInstance';
 import { formatTime } from './youtubeIframe';
 import { buildVibeQuery, makeVibe, trackMatchesLanguage } from './vibe';
 import { Search, Play, Plus, Loader2, Music2, Check } from 'lucide-react';
 
-// Language-aware starting points. The first two deliberately pin the language
-// so same-vibe autoplay has nothing to guess.
+// Language-aware starting points.
 const SUGGESTIONS = ['Hindi lo-fi', 'English lo-fi', 'Bollywood chill', 'Instrumental focus', 'Piano study', 'Rain sounds', 'Nature sounds', 'White noise'];
 const clientCache = new Map(); // query -> { results, nextPageToken } (session-scoped)
 
@@ -48,8 +47,6 @@ export default function SearchSection({ inputRef }) {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    // Drop the previous list while the new query loads so a stale row can never
-    // start a track under the wrong vibe.
     setResults([]);
     setStatus('loading');
     setMessage('');
@@ -76,16 +73,9 @@ export default function SearchSection({ inputRef }) {
   const playResult = useCallback((track, index) => {
     const seed = searchedQuery || query;
     const vibe = makeVibe(seed, track);
-    // If the first result page also supplied a cursor, reuse it: the prefetch
-    // can jump straight to unseen tracks instead of re-fetching page one.
-    // Page tokens are query-specific, so only adopt it when the autoplay query
-    // is exactly the phrase that produced these results.
     if (vibe && searchedNextToken && buildVibeQuery(vibe).toLowerCase() === seed.trim().toLowerCase()) {
       vibe.pageToken = searchedNextToken;
     }
-    // A search page can contain a stray track in another language. Keep the
-    // track the listener picked, but trim the rest of the seed queue to the
-    // vibe's language so the very first queue cannot cross the language lock.
     const queue = results.filter((t, i) => i === index || trackMatchesLanguage(t, vibe?.language));
     const queueIndex = Math.max(0, queue.findIndex((t) => t.videoId === track.videoId));
     actions.playTrack(track, {
@@ -100,17 +90,20 @@ export default function SearchSection({ inputRef }) {
     runSearch(query);
   };
 
-  const handleAdd = async (playlistId, track) => {
+  const handleAdd = useCallback(async (playlistId, track) => {
     try {
       const outcome = await playlistActions.addTrackToPlaylist(playlistId, track);
       setFlash({ videoId: track.videoId, kind: outcome });
       setAddToFor(null);
       setTimeout(() => setFlash(null), 1800);
     } catch {
-      // PlaylistContext stores the error; close the picker so it is visible
       setAddToFor(null);
     }
-  };
+  }, [playlistActions]);
+
+  const handleCreateAndAdd = useCallback((name, track) => {
+    playlistActions.createPlaylist(name).then((created) => handleAdd(created.id, track));
+  }, [handleAdd, playlistActions]);
 
   return (
     <div className="mp-search">
@@ -126,7 +119,7 @@ export default function SearchSection({ inputRef }) {
           maxLength={120}
         />
         <button type="submit" className="btn-secondary search-submit" aria-label="Search">
-          {status === 'loading' ? <Loader2 size={15} className="spin" /> : <Search size={15} />}
+          {status === 'loading' ? <Loader2 size={16} className="spin" /> : <Search size={16} />}
         </button>
       </form>
 
@@ -150,55 +143,20 @@ export default function SearchSection({ inputRef }) {
 
       <ul className="search-results" aria-live="polite">
         {results.map((track, resultIndex) => (
-          <li key={track.videoId} className={`search-result${playback.track?.videoId === track.videoId ? ' active' : ''}`}>
-            {track.thumbnail
-              ? <img src={track.thumbnail} alt="" className="result-thumb" loading="lazy" width={48} height={36} />
-              : <span className="result-thumb" aria-hidden="true" />}
-            <div className="result-meta">
-              <span className="result-title" title={track.title}>{track.title}</span>
-              <span className="result-sub">{track.channel}{track.duration ? ` · ${formatTime(track.duration)}` : ''}{track.embeddable === false ? ' · not embeddable' : ''}</span>
-            </div>
-            <div className="result-actions">
-              {flash?.videoId === track.videoId ? (
-                <span className={`result-flash ${flash.kind}`}>
-                  <Check size={13} /> {flash.kind === 'duplicate' ? 'In list' : 'Added'}
-                </span>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    title={track.embeddable === false ? 'This track can’t be embedded' : 'Play with same-vibe autoplay'}
-                    aria-label={`Play ${track.title}`}
-                    disabled={track.embeddable === false}
-                    onClick={() => playResult(track, resultIndex)}
-                  >
-                    {playback.isBusy && playback.track?.videoId === track.videoId ? <Loader2 size={14} className="spin" /> : <Play size={14} />}
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    title="Add to playlist"
-                    aria-label={`Add ${track.title} to playlist`}
-                    onClick={() => setAddToFor(addToFor?.videoId === track.videoId ? null : track)}
-                  >
-                    <Plus size={14} />
-                  </button>
-                </>
-              )}
-            </div>
-            {addToFor?.videoId === track.videoId && (
-              <div className="add-picker" role="menu" aria-label="Choose playlist">
-                {playlists.length === 0 && <span className="add-picker-empty">No playlists yet — create one below.</span>}
-                {playlists.map((p) => (
-                  <button key={p.id} type="button" className="add-picker-item" role="menuitem" onClick={() => handleAdd(p.id, track)}>
-                    {p.name}
-                  </button>
-                ))}
-                <AddInline onCreate={(name) => playlistActions.createPlaylist(name).then((created) => handleAdd(created.id, track))} />
-              </div>
-            )}
-          </li>
+          <SearchResultRow
+            key={track.videoId}
+            track={track}
+            resultIndex={resultIndex}
+            isActive={playback.track?.videoId === track.videoId}
+            isBusy={playback.isBusy && playback.track?.videoId === track.videoId}
+            flash={flash?.videoId === track.videoId ? flash : null}
+            isAddToOpen={addToFor?.videoId === track.videoId}
+            playlists={playlists}
+            onPlay={playResult}
+            onToggleAdd={(t) => setAddToFor((prev) => (prev?.videoId === t.videoId ? null : t))}
+            onAdd={handleAdd}
+            onCreatePlaylist={handleCreateAndAdd}
+          />
         ))}
       </ul>
 
@@ -208,6 +166,78 @@ export default function SearchSection({ inputRef }) {
     </div>
   );
 }
+
+const SearchResultRow = memo(function SearchResultRow({
+  track,
+  resultIndex,
+  isActive,
+  isBusy,
+  flash,
+  isAddToOpen,
+  playlists,
+  onPlay,
+  onToggleAdd,
+  onAdd,
+  onCreatePlaylist,
+}) {
+  return (
+    <li className={`search-result${isActive ? ' active' : ''}`}>
+      {track.thumbnail ? (
+        <img src={track.thumbnail} alt="" className="result-thumb" loading="lazy" width={56} height={42} />
+      ) : (
+        <span className="result-thumb" aria-hidden="true" />
+      )}
+      <div className="result-meta">
+        <span className="result-title" title={track.title}>{track.title}</span>
+        <span className="result-sub">
+          {track.channel}
+          {track.duration ? ` · ${formatTime(track.duration)}` : ''}
+          {track.embeddable === false ? ' · not embeddable' : ''}
+        </span>
+      </div>
+      <div className="result-actions">
+        {flash?.videoId === track.videoId ? (
+          <span className={`result-flash ${flash.kind}`}>
+            <Check size={14} /> {flash.kind === 'duplicate' ? 'In list' : 'Added'}
+          </span>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="icon-btn"
+              title={track.embeddable === false ? 'This track can’t be embedded' : 'Play with same-vibe autoplay'}
+              aria-label={`Play ${track.title}`}
+              disabled={track.embeddable === false}
+              onClick={() => onPlay(track, resultIndex)}
+            >
+              {isBusy ? <Loader2 size={15} className="spin" /> : <Play size={15} />}
+            </button>
+            <button
+              type="button"
+              className="icon-btn"
+              title="Add to playlist"
+              aria-label={`Add ${track.title} to playlist`}
+              onClick={() => onToggleAdd(track)}
+            >
+              <Plus size={15} />
+            </button>
+          </>
+        )}
+      </div>
+      {isAddToOpen && (
+        <div className="add-picker" role="menu" aria-label="Choose playlist">
+          {playlists.length === 0 && <span className="add-picker-empty">No playlists yet — create one below.</span>}
+          {playlists.map((p) => (
+            <button key={p.id} type="button" className="add-picker-item" role="menuitem" onClick={() => onAdd(p.id, track)}>
+              {p.name}
+            </button>
+          ))}
+          <AddInline onCreate={(name) => onCreatePlaylist(name, track)} />
+        </div>
+      )}
+    </li>
+  );
+});
 
 function AddInline({ onCreate }) {
   const [name, setName] = useState('');

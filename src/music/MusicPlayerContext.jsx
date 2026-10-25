@@ -75,6 +75,7 @@ export function MusicProvider({ children }) {
   });
 
   const playerRef = useRef(null);      // YT.Player instance
+  const playerReadyRef = useRef(null); // Promise<YT.Player> resolved only after onReady
   const creatingRef = useRef(false);   // guards double creation
   const stateRef = useRef(state);      // always-fresh mirror for event handlers
   const pollRef = useRef(null);
@@ -327,45 +328,78 @@ export function MusicProvider({ children }) {
   }, [set, stopPolling]);
 
   // ---- Player creation (once per app lifetime) ----------------------------
+  // The IFrame API only attaches the public methods (loadVideoById, playVideo,
+  // …) once the player fires onReady. Resolve only after that point: calling
+  // loadVideoById straight after `new YT.Player()` throws in current browsers.
   const ensurePlayer = useCallback(async () => {
-    if (playerRef.current) return playerRef.current;
-    if (creatingRef.current) {
-      // Wait for the in-flight creation to finish
-      for (let i = 0; i < 100 && !playerRef.current; i += 1) {
-        await new Promise((r) => setTimeout(r, 100));
-      }
-      if (playerRef.current) return playerRef.current;
-      throw new Error('The music player is still starting — try again in a moment.');
+    if (playerReadyRef.current) return playerReadyRef.current;
+    // A previous attempt may have timed out just before the player finished
+    // starting; reuse it if its public methods are now attached.
+    if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
+      return playerRef.current;
     }
-    creatingRef.current = true;
-    try {
-      const YT = await loadYouTubeApi();
-      const host = document.getElementById('atlera-yt-host');
-      if (!host) throw new Error('Music player component isn’t mounted.');
-      const player = new YT.Player(host, {
-        height: '200',
-        width: '200',
-        playerVars: {
-          autoplay: 0, // playback only ever starts from an explicit user action
-          controls: 1,
-          rel: 0,
-          modestbranding: 1,
-          playsinline: 1,
-          origin: window.location.origin,
-        },
-        events: {
-          onReady: () => {
-            try { player.setVolume(Math.round(stateRef.current.volume * 100)); } catch { /* ignore */ }
-          },
-          onStateChange: handleStateChange,
-          onError: handleError,
-        },
-      });
-      playerRef.current = player;
-      return player;
-    } finally {
-      creatingRef.current = false;
+
+    if (!creatingRef.current) {
+      creatingRef.current = true;
+      playerReadyRef.current = (async () => {
+        try {
+          const YT = await loadYouTubeApi();
+          const host = document.getElementById('atlera-yt-host');
+          if (!host) throw new Error('Music player component isn’t mounted.');
+
+          return await new Promise((resolve, reject) => {
+            let settled = false;
+            let player = null;
+            const timer = setTimeout(() => {
+              if (settled) return;
+              settled = true;
+              reject(new Error('The YouTube player took too long to start — check the network connection.'));
+            }, 15000);
+            const ready = () => {
+              if (settled) return;
+              settled = true;
+              clearTimeout(timer);
+              try { player.setVolume(Math.round(stateRef.current.volume * 100)); } catch { /* ignore */ }
+              resolve(player);
+            };
+
+            try {
+              player = new YT.Player(host, {
+                height: '200',
+                width: '200',
+                playerVars: {
+                  autoplay: 0, // playback only ever starts from an explicit user action
+                  controls: 1,
+                  rel: 0,
+                  modestbranding: 1,
+                  playsinline: 1,
+                  origin: window.location.origin,
+                },
+                events: {
+                  onReady: ready,
+                  onStateChange: handleStateChange,
+                  onError: handleError,
+                },
+              });
+              playerRef.current = player;
+            } catch (err) {
+              settled = true;
+              clearTimeout(timer);
+              reject(err);
+            }
+          });
+        } catch (err) {
+          // Allow a later click to retry instead of caching a rejected promise.
+          playerRef.current = null;
+          playerReadyRef.current = null;
+          throw err;
+        } finally {
+          creatingRef.current = false;
+        }
+      })();
     }
+
+    return playerReadyRef.current;
   }, [handleStateChange, handleError]);
 
   // ---- Public actions -----------------------------------------------------
@@ -415,11 +449,11 @@ export function MusicProvider({ children }) {
     const player = playerRef.current;
     if (!player || !stateRef.current.track) return;
     try {
-      if (stateRef.current.status === 'playing') player.pauseVideo();
+      if (stateRef.current.status === 'playing') player.pauseVideo?.();
       else {
         // Resuming requires the player to be on screen (YouTube policy).
         set({ playerVisible: true });
-        player.playVideo();
+        player.playVideo?.();
       }
     } catch (err) {
       set({ status: 'error', error: { message: err?.message || 'Playback control failed.' } });
@@ -573,6 +607,8 @@ export function MusicProvider({ children }) {
     stopPolling();
     try { playerRef.current?.destroy?.(); } catch { /* ignore */ }
     playerRef.current = null;
+    playerReadyRef.current = null;
+    creatingRef.current = false;
   }, [stopPolling]);
 
   // ---- Context values -----------------------------------------------------

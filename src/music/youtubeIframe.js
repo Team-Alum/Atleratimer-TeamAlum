@@ -27,8 +27,11 @@ export function loadYouTubeApi() {
       if (!window.YT || !window.YT.Player) {
         reject(new Error('The YouTube player took too long to load.'));
       }
-    }, 15000);
+    }, 20000);
   });
+  // A transient failure must not poison every later play attempt: allow the
+  // next click/Retry to load the API again (or use it if it has since arrived).
+  apiPromise.catch(() => { apiPromise = null; });
   return apiPromise;
 }
 

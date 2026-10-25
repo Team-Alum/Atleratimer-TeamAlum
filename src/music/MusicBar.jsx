@@ -148,8 +148,8 @@ export default function MusicBar() {
       >
         <span className={`pill-thumb${playing ? ' playing' : ''}`} aria-hidden="true">
           {track?.thumbnail
-            ? <img src={track.thumbnail} alt="" width={34} height={34} />
-            : <Music2 size={15} />}
+            ? <img src={track.thumbnail} alt="" width={32} height={32} />
+            : <Music2 size={14} />}
         </span>
         <span className="pill-title">{track ? track.title : 'Find your focus music'}</span>
       </button>
@@ -165,10 +165,10 @@ export default function MusicBar() {
         className="mb-btn pill-play"
         onClick={actions.toggle}
         disabled={!track && queue.length === 0}
-        title={playing ? 'Pause' : 'Play'}
-        aria-label={playing ? 'Pause' : 'Play'}
+        title={playing ? 'Pause music' : 'Play music'}
+        aria-label={playing ? 'Pause music' : 'Play music'}
       >
-        {busyForTrack ? <Loader2 size={15} className="spin" /> : playing ? <Pause size={15} /> : <Play size={15} />}
+        {busyForTrack ? <Loader2 size={14} className="spin" /> : playing ? <Pause size={14} /> : <Play size={14} />}
       </button>
     </div>
   );
@@ -214,10 +214,10 @@ export default function MusicBar() {
             className="mb-btn mb-play"
             onClick={actions.toggle}
             disabled={!track && queue.length === 0}
-            title={playing ? 'Pause' : 'Play'}
-            aria-label={playing ? 'Pause' : 'Play'}
+            title={playing ? 'Pause music' : 'Play music'}
+            aria-label={playing ? 'Pause music' : 'Play music'}
           >
-            {playback.isBusy ? <Loader2 size={17} className="spin" /> : playing ? <Pause size={17} /> : <Play size={17} />}
+            {playback.isBusy ? <Loader2 size={16} className="spin" /> : playing ? <Pause size={16} /> : <Play size={16} />}
           </button>
           <button type="button" className="mb-btn" onClick={actions.next} disabled={!hasNext && queue.length < 2} title="Next track" aria-label="Next track">
             <SkipForward size={16} />

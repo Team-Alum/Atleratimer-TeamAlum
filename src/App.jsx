@@ -5,22 +5,19 @@ import { MusicProvider } from './music/MusicPlayerContext';
 import { PlaylistProvider } from './music/PlaylistContext';
 import SessionMusicBridge from './music/SessionMusicBridge';
 import AppShell from './components/layout/AppShell';
-import LaunchGate from './components/LaunchGate';
 import './App.css';
 
 export default function App() {
   return (
-    <LaunchGate>
-      <AuthProvider>
-        <TimerProvider>
-          <MusicProvider>
-            <PlaylistProvider>
-              <SessionMusicBridge />
-              <AppShell />
-            </PlaylistProvider>
-          </MusicProvider>
-        </TimerProvider>
-      </AuthProvider>
-    </LaunchGate>
+    <AuthProvider>
+      <TimerProvider>
+        <MusicProvider>
+          <PlaylistProvider>
+            <SessionMusicBridge />
+            <AppShell />
+          </PlaylistProvider>
+        </MusicProvider>
+      </TimerProvider>
+    </AuthProvider>
   );
 }

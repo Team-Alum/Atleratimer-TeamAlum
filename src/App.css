@@ -5271,21 +5271,23 @@ textarea:focus-visible,
 /* Host element for the single YouTube player when in immersive mode */
 .yt-host-wrap.is-immersive.video-active {
   position: fixed;
-  inset: 0;
-  left: 0;
   top: 0;
+  left: 0;
+  right: 0;
   width: 100vw;
   width: 100dvw;
-  height: 100vh;
-  height: 100dvh;
+  height: 52vh;
+  height: 52dvh;
   z-index: 1; /* In windowed mode, sits behind app-container workspace */
-  pointer-events: none;
-  user-select: none;
+  pointer-events: none !important;
+  user-select: none !important;
   overflow: hidden;
   opacity: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 100%);
   transition: opacity 0.8s ease;
 }
 
@@ -5299,17 +5301,18 @@ html.atlera-focus-fullscreen .yt-host-wrap.is-immersive.video-active {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(1.35) !important;
   width: 100vw;
   height: 56.25vw; /* 16:9 aspect ratio */
-  min-height: 100vh;
-  min-height: 100dvh;
-  min-width: 177.78vh;
-  min-width: 177.78dvh;
-  opacity: 0.32; /* 25–35% subtle visibility */
+  min-height: 52vh;
+  min-height: 52dvh;
+  min-width: 92.44vh;
+  min-width: 92.44dvh;
+  opacity: 0.38; /* subtle visibility while blending */
   filter: saturate(115%) contrast(105%);
-  pointer-events: none;
-  border: 0;
+  pointer-events: none !important;
+  user-select: none !important;
+  border: 0 !important;
   transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -5324,8 +5327,8 @@ html.atlera-focus-fullscreen .yt-host-wrap.is-immersive.video-active {
 @media (max-aspect-ratio: 16/9) {
   .yt-host-wrap.is-immersive.video-active #atlera-yt-host,
   .yt-host-wrap.is-immersive.video-active iframe {
-    width: 177.78vh;
-    height: 100vh;
+    width: 92.44vh;
+    height: 52vh;
   }
 }
 
@@ -5342,6 +5345,10 @@ html.atlera-focus-fullscreen .yt-host-wrap.is-immersive.video-active {
   justify-content: flex-start;
   overflow: hidden;
   background-color: var(--app-background, #0B0D10);
+}
+
+.atlera-fs-root.has-immersive {
+  background-color: transparent !important;
 }
 
 /* Layer 1: Dark base background */
@@ -5362,10 +5369,16 @@ html.atlera-focus-fullscreen .yt-host-wrap.is-immersive.video-active {
 /* Layer 2: Thumbnail Fallback inside FocusFullscreen */
 .atlera-fs-media-layer {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52vh;
+  height: 52dvh;
   z-index: 2;
   pointer-events: none;
   overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 100%);
 }
 
 .atlera-fs-thumb {
@@ -5389,9 +5402,13 @@ html.atlera-focus-fullscreen .yt-host-wrap.is-immersive.video-active {
 }
 
 .atlera-fs-scrim.has-immersive {
-  background:
-    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.08) 35%, rgba(4, 7, 12, 0.82) 100%),
-    rgba(7, 12, 20, 0.70);
+  background: linear-gradient(
+    to bottom,
+    rgba(11, 13, 16, 0.20) 0%,
+    rgba(11, 13, 16, 0.45) 30%,
+    rgba(11, 13, 16, 0.90) 52%,
+    var(--app-background, #0B0D10) 70%
+  );
 }
 
 /* Layer 4: Topbar with Exit button & Immersive Toggle (Guaranteed Visible & Clickable) */
@@ -5456,15 +5473,19 @@ html.atlera-focus-fullscreen .yt-host-wrap.is-immersive.video-active {
    -------------------------------------------------------------------------- */
 .atlera-ambient-immersive {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   width: 100vw;
   width: 100dvw;
-  height: 100vh;
-  height: 100dvh;
+  height: 52vh;
+  height: 52dvh;
   pointer-events: none;
   user-select: none;
   overflow: hidden;
   z-index: 0;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 100%);
 }
 
 .atlera-ambient-immersive-thumb {

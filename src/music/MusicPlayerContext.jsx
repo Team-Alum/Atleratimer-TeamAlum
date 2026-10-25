@@ -375,7 +375,10 @@ export function MusicProvider({ children }) {
                 width: '200',
                 playerVars: {
                   autoplay: 0, // playback only ever starts from an explicit user action
-                  controls: 1,
+                  controls: 0,
+                  disablekb: 1,
+                  fs: 0,
+                  iv_load_policy: 3,
                   rel: 0,
                   modestbranding: 1,
                   playsinline: 1,

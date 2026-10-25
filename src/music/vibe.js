@@ -95,9 +95,28 @@ export function makeVibe(query, seedTrack = null) {
 }
 
 /**
+ * Podcast and talk-show detection to keep autoplay strictly focused on music.
+ */
+export const NON_MUSIC_REGEX = /\b(podcast|podcasts|episode|episodes?|ep\s*\d+|ep\.\s*\d+|interview|interviews|talk\s*show|talkshow|full\s*episode|roundtable|discussion|q&a|reaction|reacts|vlog|vlogging|vloggers?|standup|stand-up|roast|news\s*live|press conference|documentary|audiobook|webinar|tedx|ted\s*talk|monologue|commentary|the\s+\w+\s+show|show\s*#\d+|trs|clips?)\b|#\s*\d{2,4}\b/i;
+
+export function isPodcastOrNonMusic(track) {
+  if (!track) return false;
+  const text = `${track.title || ''} ${track.channel || ''}`;
+  if (NON_MUSIC_REGEX.test(text)) return true;
+  if (/podcast|talks|conversations|interviews|beerbiceps|powerfuljre|huberman|fridman/i.test(track.channel || '')) return true;
+  // If track is over 35 minutes and has no music cues, it is almost certainly a talk show/podcast
+  if (track.duration && track.duration > 2100) {
+    const isMusicMix = /(music|song|songs|lofi|lo-fi|soundtrack|relaxing|study|beats|instrumental|ambient|chillhop|mix|jukebox|playlist|classical)/i.test(text);
+    if (!isMusicMix) return true;
+  }
+  return false;
+}
+
+/**
  * The actual YouTube query used when topping up a vibe. A language suffix is
  * added when the original phrase does not already name the language, which
  * keeps result pages on the same side of the language lock.
+ * Excludes podcasts and interviews explicitly.
  */
 export function buildVibeQuery(vibe) {
   const base = String(vibe?.query || '').trim();
@@ -108,17 +127,21 @@ export function buildVibeQuery(vibe) {
     query = `${query} hindi songs`;
   } else if (vibe.language === 'english' && !/english/i.test(query)) {
     query = `${query} english songs`;
+  } else if (vibe.language === 'instrumental' && !/instrumental|lofi|study|music/i.test(query)) {
+    query = `${query} study focus music`;
   }
-  return `${query}${VIBE_VARIANTS[variant]}`.trim();
+  return `${query}${VIBE_VARIANTS[variant]} music -podcast -interview`.trim();
 }
 
 /**
- * Strict-ish language gate for autoplay results.
+ * Strict-ish language and music gate for autoplay results.
+ * - Drops any podcast or talk show regardless of language.
  * - Hindi vibe: drop clearly English tracks, keep Hindi/transliterated Hindi.
  * - English vibe: drop any Hindi/Devanagari track.
- * - Instrumental/unknown: no gate.
+ * - Instrumental/unknown: drop podcasts, no language gate.
  */
 export function trackMatchesLanguage(track, language) {
+  if (isPodcastOrNonMusic(track)) return false;
   if (!language || language === 'instrumental' || language === 'unknown') return true;
   if (language === 'hindi') return !isClearlyEnglish(track);
   if (language === 'english') return !isHindiText(textOf(track));

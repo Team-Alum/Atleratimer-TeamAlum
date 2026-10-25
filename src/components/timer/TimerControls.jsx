@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { useTimerState, useTimerActions, useTimerCountdown } from '../../context/useTimer';
-import { RotateCcw, Pause, Play, Coffee, VolumeX, Volume2 } from 'lucide-react';
+import { RotateCcw, Pause, Play, Coffee, Timer as TimerIcon, VolumeX, Volume2 } from 'lucide-react';
 
 function TimerControls() {
   const { timerState, timerSettings, data } = useTimerState();
@@ -22,6 +22,9 @@ function TimerControls() {
   } else if (timerState.cycleIndex >= timerSettings.sessionsPerCycle) {
     upNextText = `Up next · ${timerSettings.longBreakDuration}-minute long break`;
   }
+  const upNextMeta = elapsedSeconds > 0 ? `${upNextText} · ${elapsedText}` : upNextText;
+  const nextIsBreak = mode === 'focus';
+  const NextIcon = nextIsBreak ? Coffee : TimerIcon;
 
   return (
     <div>
@@ -56,12 +59,11 @@ function TimerControls() {
       </div>
 
       {/* Presets Row */}
-      <div className="presets-row" role="tablist" aria-label="Session presets">
+      <div className="presets-row" role="group" aria-label="Session presets">
         <button
           className={`preset-pill ${mode === 'focus' ? 'active' : ''}`}
           onClick={() => switchPreset('focus')}
-          role="tab"
-          aria-selected={mode === 'focus'}
+          aria-pressed={mode === 'focus'}
         >
           Focus {timerSettings.focusDuration}m
         </button>
@@ -69,8 +71,7 @@ function TimerControls() {
         <button
           className={`preset-pill ${mode === 'short_break' ? 'active' : ''}`}
           onClick={() => switchPreset('short_break')}
-          role="tab"
-          aria-selected={mode === 'short_break'}
+          aria-pressed={mode === 'short_break'}
         >
           Break {timerSettings.shortBreakDuration}m
         </button>
@@ -78,8 +79,7 @@ function TimerControls() {
         <button
           className={`preset-pill ${mode === 'long_break' ? 'active' : ''}`}
           onClick={() => switchPreset('long_break')}
-          role="tab"
-          aria-selected={mode === 'long_break'}
+          aria-pressed={mode === 'long_break'}
         >
           Long {timerSettings.longBreakDuration}m
         </button>
@@ -87,8 +87,8 @@ function TimerControls() {
 
       {/* Up next break info row */}
       <div className="upcoming-info-row">
-        <Coffee size={15} className="upcoming-info-icon" />
-        <span>{upNextText} / {elapsedText}</span>
+        <NextIcon size={15} className="upcoming-info-icon" aria-hidden="true" />
+        <span>{upNextMeta}</span>
       </div>
 
       {/* Bottom hint row */}
@@ -97,6 +97,7 @@ function TimerControls() {
           className={`sound-toggle-btn ${data.ambientSoundEnabled ? 'active' : ''}`}
           onClick={toggleAmbientSound}
           title="Toggle ambient focus sound"
+          aria-pressed={!!data.ambientSoundEnabled}
         >
           {data.ambientSoundEnabled ? (
             <Volume2 size={15} strokeWidth={2.2} />
@@ -107,7 +108,7 @@ function TimerControls() {
         </button>
 
         <div className="shortcut-hint">
-          Space to pause · Ctrl R to reset
+          {isRunning ? 'Space to pause' : 'Space to start'} · Ctrl+R to reset
         </div>
       </div>
     </div>

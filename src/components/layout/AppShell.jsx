@@ -43,6 +43,7 @@ export default function AppShell() {
       <main className="main-workspace">
         <DashboardHeader
           onOpenMobileMenu={openMobileMenu}
+          mobileMenuOpen={mobileMenuOpen}
         />
 
         {/* View Switcher */}

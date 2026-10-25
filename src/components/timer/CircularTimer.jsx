@@ -81,6 +81,7 @@ export default function CircularTimer({ onEditDuration }) {
         strokeWidth={look.strokeWidth}
         effect={look.effect}
         comfort={look.comfort}
+        running={isRunning}
         style={look.vars}
       >
         <div className="timer-mode-tag">{modeTag}</div>

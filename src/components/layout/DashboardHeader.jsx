@@ -12,9 +12,10 @@ function formatToday() {
   }).toUpperCase();
 }
 
-function DashboardHeader({ onOpenMobileMenu }) {
+function DashboardHeader({ onOpenMobileMenu, mobileMenuOpen = false }) {
   const { theme, activeView, data } = useTimerState();
   const { toggleTheme, setData } = useTimerActions();
+  const notificationsSupported = notificationService.isSupported();
 
   // The clock is read outside of render and refreshed once a minute, so the
   // header rolls over at midnight instead of staying on the day the app was
@@ -44,10 +45,7 @@ function DashboardHeader({ onOpenMobileMenu }) {
   const currentTitle = viewTitles[activeView] || 'Focus Study Session';
 
   const handleNotificationClick = async () => {
-    if (!notificationService.isSupported()) {
-      alert('Desktop notifications are not supported in this browser.');
-      return;
-    }
+    if (!notificationsSupported) return;
     const currentPermission = notificationService.getPermission();
     if (currentPermission !== 'granted') {
       const result = await notificationService.requestPermission();
@@ -76,6 +74,8 @@ function DashboardHeader({ onOpenMobileMenu }) {
             className="icon-button mobile-menu-btn"
             onClick={onOpenMobileMenu}
             aria-label="Open sidebar navigation"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="app-sidebar"
           >
             <Menu size={18} />
           </button>
@@ -91,20 +91,28 @@ function DashboardHeader({ onOpenMobileMenu }) {
         <button
           className={`icon-button ${data.desktopNotifications ? 'active' : ''}`}
           onClick={handleNotificationClick}
-          title={data.desktopNotifications ? 'Notifications Enabled' : 'Enable Notifications'}
-          aria-label="Toggle notifications"
+          disabled={!notificationsSupported}
+          aria-pressed={!!data.desktopNotifications}
+          title={
+            !notificationsSupported
+              ? 'Desktop notifications are not supported in this browser'
+              : data.desktopNotifications
+                ? 'Notifications enabled'
+                : 'Enable notifications'
+          }
+          aria-label={data.desktopNotifications ? 'Disable notifications' : 'Enable notifications'}
         >
           <Bell size={18} strokeWidth={2} />
         </button>
 
         {/* Light / Dark Selector */}
-        <div className="theme-toggle-pill" role="radiogroup" aria-label="Theme selector">
+        <div className="theme-toggle-pill" role="group" aria-label="Theme">
           <button
             className={`theme-toggle-btn ${theme === 'light' ? 'active' : ''}`}
             onClick={() => toggleTheme('light')}
-            role="radio"
-            aria-checked={theme === 'light'}
+            aria-pressed={theme === 'light'}
             aria-label="Light theme"
+            title="Light theme"
           >
             <Sun size={14} strokeWidth={2.2} />
             <span>Light</span>
@@ -112,9 +120,9 @@ function DashboardHeader({ onOpenMobileMenu }) {
           <button
             className={`theme-toggle-btn ${theme === 'dark' ? 'active' : ''}`}
             onClick={() => toggleTheme('dark')}
-            role="radio"
-            aria-checked={theme === 'dark'}
+            aria-pressed={theme === 'dark'}
             aria-label="Dark theme"
+            title="Dark theme"
           >
             <Moon size={14} strokeWidth={2.2} />
             <span>Dark</span>

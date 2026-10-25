@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
-import { useTimerState, useTimerActions } from '../../context/useTimer';
+import { useTimerState, useTimerActions, useTimerCountdown } from '../../context/useTimer';
 import CircularTimer from './CircularTimer';
 import DurationEditor from './DurationEditor';
 import TimerControls from './TimerControls';
@@ -9,7 +9,8 @@ import { BookOpen, Pencil, Check, Maximize2 } from 'lucide-react';
 function FocusTimerCard() {
   const { timerState, timerSettings } = useTimerState();
   const { setSessionTitle } = useTimerActions();
-  const { isRunning, sessionTitle } = timerState;
+  const { isRunning, sessionTitle, mode, cycleIndex, totalSeconds } = timerState;
+  const { remainingSeconds } = useTimerCountdown();
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(sessionTitle);
@@ -59,8 +60,19 @@ function FocusTimerCard() {
     setIsEditingTitle(false);
   };
 
-  // Format next session duration string, e.g. "NEXT 25 : 00"
-  const nextDurationStr = `NEXT  ${String(timerSettings.focusDuration).padStart(2, '0')} : 00`;
+  // What comes after the session currently on the dial. Kept in sync with the
+  // "Up next" row in TimerControls so the two never contradict each other.
+  const nextMinutes = mode === 'focus'
+    ? (cycleIndex >= timerSettings.sessionsPerCycle
+      ? timerSettings.longBreakDuration
+      : timerSettings.shortBreakDuration)
+    : timerSettings.focusDuration;
+  const nextDurationStr = `${String(nextMinutes).padStart(2, '0')}:00`;
+
+  // Idle at the full duration means the session has not started yet.
+  const isFresh = !isRunning && remainingSeconds >= totalSeconds;
+  const statusLabel = isRunning ? 'In progress' : isFresh ? 'Ready' : 'Paused';
+  const statusClass = isRunning ? 'in-progress' : isFresh ? 'is-ready' : 'is-paused';
 
   return (
     <div className="timer-card">
@@ -69,16 +81,25 @@ function FocusTimerCard() {
         <div className="session-title-group">
           <BookOpen size={19} className="session-icon" strokeWidth={2} />
           {isEditingTitle ? (
-            <form onSubmit={handleSaveTitle} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <form className="session-title-form" onSubmit={handleSaveTitle}>
               <input
                 type="text"
                 value={tempTitle}
                 onChange={(e) => setTempTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    e.stopPropagation();
+                    setTempTitle(sessionTitle);
+                    setIsEditingTitle(false);
+                  }
+                }}
+                onFocus={(e) => e.currentTarget.select()}
+                maxLength={60}
                 autoFocus
-                className="form-input"
-                style={{ padding: '4px 8px', fontSize: 15, width: 170 }}
+                aria-label="Session title"
+                className="form-input session-title-input"
               />
-              <button type="submit" className="edit-title-btn" title="Save title">
+              <button type="submit" className="edit-title-btn" title="Save title" aria-label="Save title">
                 <Check size={16} />
               </button>
             </form>
@@ -101,14 +122,14 @@ function FocusTimerCard() {
         </div>
 
         <div className="timer-card-header-right">
-          <div className="next-pill">
+          <div className="next-pill" title={`Next session: ${nextMinutes} minutes`}>
+            <span className="next-pill-label">NEXT</span>
             <span>{nextDurationStr}</span>
-            <Pencil size={12} strokeWidth={2.2} style={{ opacity: 0.6 }} />
           </div>
 
-          <div className={`status-badge ${isRunning ? 'in-progress' : 'is-paused'}`}>
+          <div className={`status-badge ${statusClass}`}>
             <span className="status-badge-dot" aria-hidden="true" />
-            {isRunning ? 'In progress' : 'Paused'}
+            {statusLabel}
           </div>
 
           <button

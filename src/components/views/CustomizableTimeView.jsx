@@ -208,7 +208,7 @@ export default function CustomizableTimeView() {
             </div>
           </div>
 
-          <div className="setting-row">
+          <label className="setting-row setting-row--toggle">
             <div>
               <div className="setting-label">Auto-start Breaks</div>
               <div className="setting-help">Automatically transition into break when focus session completes</div>
@@ -217,11 +217,11 @@ export default function CustomizableTimeView() {
               type="checkbox"
               checked={form.autoStartBreaks}
               onChange={(e) => handleChange('autoStartBreaks', e.target.checked)}
-              style={{ width: 18, height: 18, accentColor: 'var(--accent-teal)' }}
+              style={{ width: 20, height: 20, accentColor: 'var(--accent-teal)' }}
             />
-          </div>
+          </label>
 
-          <div className="setting-row">
+          <label className="setting-row setting-row--toggle">
             <div>
               <div className="setting-label">Auto-start Focus Sessions</div>
               <div className="setting-help">Automatically begin next focus block when break countdown concludes</div>
@@ -230,11 +230,11 @@ export default function CustomizableTimeView() {
               type="checkbox"
               checked={form.autoStartFocus}
               onChange={(e) => handleChange('autoStartFocus', e.target.checked)}
-              style={{ width: 18, height: 18, accentColor: 'var(--accent-teal)' }}
+              style={{ width: 20, height: 20, accentColor: 'var(--accent-teal)' }}
             />
-          </div>
+          </label>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 28, paddingTop: 18, borderTop: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginTop: 28, paddingTop: 18, borderTop: '1px solid var(--border-subtle)' }}>
             <button
               type="button"
               className="btn-secondary"

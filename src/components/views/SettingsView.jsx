@@ -80,35 +80,35 @@ export default function SettingsView() {
           />
         </div>
 
-        <div className="setting-row">
+        <label className="setting-row setting-row--toggle">
           <div>
             <div className="setting-label">Remember last playlist</div>
             <div className="setting-help">Reopens your queue on the next visit — music never starts by itself</div>
           </div>
-          <label className="toggle">
+          <span className="toggle">
             <input
               type="checkbox"
               checked={musicSettings.rememberLastPlaylist !== false}
               onChange={(e) => updateMusic({ rememberLastPlaylist: e.target.checked })}
             />
             <span className="toggle-slider" />
-          </label>
-        </div>
+          </span>
+        </label>
 
-        <div className="setting-row">
+        <label className="setting-row setting-row--toggle">
           <div>
             <div className="setting-label">Start music when a focus session begins</div>
             <div className="setting-help">Browsers may still require one click before audio can start</div>
           </div>
-          <label className="toggle">
+          <span className="toggle">
             <input
               type="checkbox"
               checked={Boolean(musicSettings.musicOnSessionStart)}
               onChange={(e) => updateMusic({ musicOnSessionStart: e.target.checked })}
             />
             <span className="toggle-slider" />
-          </label>
-        </div>
+          </span>
+        </label>
       </div>
 
       {/* Data Management */}

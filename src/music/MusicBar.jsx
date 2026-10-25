@@ -144,14 +144,14 @@ export default function MusicBar() {
         onClick={togglePanel}
         aria-expanded={open}
         aria-label={open ? 'Collapse music player' : 'Expand music player'}
-        title={track ? track.title : 'Find your focus music'}
+        title={track ? track.title : 'Find focus music'}
       >
         <span className={`pill-thumb${playing ? ' playing' : ''}`} aria-hidden="true">
           {track?.thumbnail
             ? <img src={track.thumbnail} alt="" width={32} height={32} />
             : <Music2 size={14} />}
         </span>
-        <span className="pill-title">{track ? track.title : 'Find your focus music'}</span>
+        <span className="pill-title">{track ? track.title : 'Find focus music'}</span>
       </button>
 
       {playing && !playback.isBusy && (

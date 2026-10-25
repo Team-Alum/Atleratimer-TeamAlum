@@ -11,6 +11,7 @@ export default function DialFace({
   strokeWidth = 12,
   effect = 'glow',
   comfort = 'balanced',
+  running = false,
   style,
   children,
 }) {
@@ -69,7 +70,7 @@ export default function DialFace({
 
         {/* Active progress ring */}
         <circle
-          className="dial-progress"
+          className={`dial-progress${running ? ' is-running' : ''}`}
           cx={size / 2}
           cy={size / 2}
           r={radius}

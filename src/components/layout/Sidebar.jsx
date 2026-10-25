@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect } from 'react';
 import { useTimerState, useTimerActions } from '../../context/useTimer';
 import MusicBar from '../../music/MusicBar';
 import { Timer, Sliders, Palette, Settings, Sprout, Hourglass } from 'lucide-react';
@@ -6,6 +6,22 @@ import { Timer, Sliders, Palette, Settings, Sprout, Hourglass } from 'lucide-rea
 function Sidebar({ isOpen, onClose }) {
   const { activeView } = useTimerState();
   const { setActiveView } = useTimerActions();
+
+  // The drawer is modal on small screens: lock the page behind it and let
+  // Escape dismiss it, without affecting the always-visible desktop sidebar.
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [isOpen, onClose]);
 
   const navItems = [
     { id: 'focus', label: 'Focus Study Session', icon: Timer },
@@ -22,7 +38,7 @@ function Sidebar({ isOpen, onClose }) {
   return (
     <>
       {isOpen && <div className="sidebar-backdrop" onClick={onClose} />}
-      <aside className={`app-sidebar ${isOpen ? 'open' : ''}`}>
+      <aside id="app-sidebar" className={`app-sidebar ${isOpen ? 'open' : ''}`}>
         {/* Brand */}
         <div className="sidebar-brand">
           <div className="brand-icon-box">
@@ -58,7 +74,7 @@ function Sidebar({ isOpen, onClose }) {
         </div>
 
         {/* Navigation items */}
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" aria-label="Primary">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeView === item.id;
@@ -69,7 +85,7 @@ function Sidebar({ isOpen, onClose }) {
                 className={`nav-item ${isActive ? 'active' : ''}`}
                 aria-current={isActive ? 'page' : undefined}
               >
-                <Icon size={19} className="nav-icon" strokeWidth={isActive ? 2.2 : 1.8} />
+                <Icon size={19} className="nav-icon" strokeWidth={isActive ? 2.2 : 1.8} aria-hidden="true" />
                 <span>{item.label}</span>
               </button>
             );

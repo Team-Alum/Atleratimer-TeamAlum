@@ -1,20 +1,31 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTimerState, useTimerActions } from '../../context/useTimer';
+import { useImmersiveMedia } from '../../music/useImmersiveMedia';
 import CircularTimer from './CircularTimer';
 import TimerControls from './TimerControls';
 import { Minimize2, Sparkles } from 'lucide-react';
 
 export default function FocusFullscreen({ onExit }) {
-  const { timerState, timerSettings, data } = useTimerState();
+  const { timerState, timerSettings } = useTimerState();
   const { toggleImmersiveBackground } = useTimerActions();
+  const { isImmersive, isVideoPlayable, resolvedThumb } = useImmersiveMedia();
   const { mode, cycleIndex } = timerState;
   const rootRef = useRef(null);
   const returnFocusRef = useRef(null);
 
-  const modeLabel = mode === 'short_break' ? 'SHORT BREAK' : mode === 'long_break' ? 'LONG BREAK' : 'FOCUS SESSION';
-  const cycleText = `Session ${Math.min(cycleIndex + 1, timerSettings.sessionsPerCycle)} / ${timerSettings.sessionsPerCycle}`;
+  const modeLabel =
+    mode === 'short_break'
+      ? 'SHORT BREAK'
+      : mode === 'long_break'
+      ? 'LONG BREAK'
+      : 'FOCUS SESSION';
+  const cycleText = `Session ${Math.min(
+    cycleIndex,
+    timerSettings.sessionsPerCycle
+  )} / ${timerSettings.sessionsPerCycle}`;
 
+  // Manage fullscreen class on root elements
   useEffect(() => {
     const root = document.documentElement;
     const body = document.body;
@@ -22,23 +33,27 @@ export default function FocusFullscreen({ onExit }) {
     root.classList.add('atlera-focus-fullscreen');
     body.classList.add('atlera-focus-fullscreen');
     body.style.overflow = 'hidden';
+
+    // Focus the exit button for accessibility
     rootRef.current?.querySelector('.atlera-fs-exit')?.focus();
 
     return () => {
       root.classList.remove('atlera-focus-fullscreen');
       body.classList.remove('atlera-focus-fullscreen');
       body.style.overflow = '';
-      // Return the keyboard to the control that opened the overlay.
+      // Return keyboard focus to the control that launched fullscreen
       returnFocusRef.current?.focus?.();
     };
   }, []);
 
-  // Keep focus inside the overlay while it is open.
+  // Trap keyboard focus inside overlay
   const trapFocus = (event) => {
     if (event.key !== 'Tab' || !rootRef.current) return;
-    const nodes = [...rootRef.current.querySelectorAll(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    )].filter((el) => el.offsetParent !== null);
+    const nodes = [
+      ...rootRef.current.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      ),
+    ].filter((el) => el.offsetParent !== null);
     if (!nodes.length) return;
     const first = nodes[0];
     const last = nodes[nodes.length - 1];
@@ -51,29 +66,51 @@ export default function FocusFullscreen({ onExit }) {
     }
   };
 
+  // Thumbnail fallback is active when immersive mode is ON, thumbnail exists, and video isn't playing
+  const showThumbnail = isImmersive && !isVideoPlayable && Boolean(resolvedThumb);
+
   return createPortal(
     <div
-      className="atlera-fs-root"
+      className={`atlera-fs-root${isImmersive ? ' has-immersive' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label="Fullscreen focus mode"
       ref={rootRef}
       onKeyDown={trapFocus}
     >
-      <div className="atlera-fs-bg" aria-hidden="true" />
-      <div className="atlera-fs-scrim" aria-hidden="true" />
+      {/* Layer 1: Dark base background */}
+      <div
+        className={`atlera-fs-bg${isImmersive && isVideoPlayable ? ' is-video-transparent' : ''}`}
+        aria-hidden="true"
+      />
 
-      <header className="atlera-fs-topbar" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+      {/* Layer 2: Optional thumbnail background when video is not playing */}
+      {showThumbnail && (
+        <div className="atlera-fs-media-layer" aria-hidden="true">
+          <img src={resolvedThumb} alt="" className="atlera-fs-thumb" />
+        </div>
+      )}
+
+      {/* Layer 3: Dark overlay / scrim + vignette */}
+      <div
+        className={`atlera-fs-scrim${isImmersive ? ' has-immersive' : ''}`}
+        aria-hidden="true"
+      />
+
+      {/* Layer 4: Accessible topbar with Immersive Toggle & Exit Button */}
+      <header className="atlera-fs-topbar">
         <button
           type="button"
-          className={`atlera-fs-exit atlera-fs-immersive-btn ${data?.musicSettings?.immersiveBackground ? 'active' : ''}`}
+          className={`atlera-fs-exit atlera-fs-immersive-btn${
+            isImmersive ? ' active' : ''
+          }`}
           onClick={toggleImmersiveBackground}
-          title={`Immersive Music Background: ${data?.musicSettings?.immersiveBackground ? 'On' : 'Off'}`}
+          title={`Immersive Music Background: ${isImmersive ? 'On' : 'Off'}`}
           aria-label="Toggle Immersive Music Background"
-          aria-pressed={!!data?.musicSettings?.immersiveBackground}
+          aria-pressed={isImmersive}
         >
-          <Sparkles size={16} strokeWidth={2.2} />
-          <span>Immersive {data?.musicSettings?.immersiveBackground ? 'On' : 'Off'}</span>
+          <Sparkles size={15} strokeWidth={2.2} />
+          <span>Immersive {isImmersive ? 'On' : 'Off'}</span>
         </button>
         <button
           type="button"
@@ -87,6 +124,7 @@ export default function FocusFullscreen({ onExit }) {
         </button>
       </header>
 
+      {/* Layer 5: Complete Foreground Timer UI */}
       <main className="atlera-fs-main">
         <div className="atlera-fs-timer-block">
           <div className="atlera-fs-label">{modeLabel}</div>

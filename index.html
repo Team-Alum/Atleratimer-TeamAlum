@@ -120,6 +120,43 @@
     </script>
   </head>
   <body>
+    <div id="atlera-barricade" style="position:fixed;inset:0;z-index:2147483647;background:radial-gradient(1200px 800px at 50% 50%,#0b1026 0%,#05070f 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;color:#e6edf3;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;padding:24px">
+      <div style="font-size:clamp(32px,8vw,72px);font-weight:700;letter-spacing:-0.02em">Atlera Timer</div>
+      <div style="font-size:clamp(18px,4vw,28px);opacity:.8;font-weight:500">Launching at 9:00 AM</div>
+      <div id="atlera-barricade-timer" style="margin-top:16px;font-size:clamp(48px,12vw,120px);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.08em">00:00:00</div>
+      <div style="margin-top:12px;font-size:clamp(14px,2vw,18px);opacity:.6">The application will be live automatically</div>
+    </div>
+    <script>
+      (function(){
+        try {
+          var params = new URLSearchParams(window.location.search);
+          if (params.get('barricade') === 'hide') {
+            var el = document.getElementById('atlera-barricade');
+            if (el) el.style.display = 'none';
+            return;
+          }
+          var now = new Date();
+          var target = new Date(now);
+          target.setHours(9,0,0,0);
+          if (target <= now) target.setDate(target.getDate()+1);
+          var timerEl = document.getElementById('atlera-barricade-timer');
+          var barrier = document.getElementById('atlera-barricade');
+          function tick(){
+            var cur = Date.now();
+            var rem = target.getTime() - cur;
+            if (rem <= 0) {
+              if (barrier) barrier.style.display = 'none';
+              return;
+            }
+            var s = Math.floor(rem/1000);
+            var h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+            if (timerEl) timerEl.textContent = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+            setTimeout(tick, 1000);
+          }
+          tick();
+        } catch(e){}
+      })();
+    </script>
     <div id="root"></div>
     <script>
       if ('serviceWorker' in navigator) {

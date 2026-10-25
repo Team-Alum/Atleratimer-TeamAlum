@@ -1,17 +1,25 @@
 import React, { useEffect, useState } from 'react';
 
+const TARGET_HOUR = 9;
+const TARGET_MIN = 0;
+
 function getTargetTime() {
   try {
-    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-    if (params && params.get('barricade') === 'hide') {
-      return null;
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('barricade') === 'hide') return null;
+      if (params.get('barricade') === 'show') {
+        const now = new Date();
+        const target = new Date(now);
+        target.setHours(TARGET_HOUR, TARGET_MIN, 0, 0);
+        if (target <= now) target.setDate(target.getDate() + 1);
+        return target.getTime();
+      }
     }
-  } catch (e) {
-    // ignore
-  }
+  } catch (e) {}
   const now = new Date();
   const target = new Date(now);
-  target.setHours(9, 0, 0, 0);
+  target.setHours(TARGET_HOUR, TARGET_MIN, 0, 0);
   if (target <= now) {
     target.setDate(target.getDate() + 1);
   }
@@ -32,8 +40,10 @@ export default function LaunchGate({ children }) {
   const [now, setNow] = useState(() => Date.now());
   const [hidden, setHidden] = useState(() => {
     try {
-      const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-      if (params && params.get('barricade') === 'hide') return true;
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('barricade') === 'hide') return true;
+      }
     } catch {}
     const t = getTargetTime();
     if (!t) return true;

@@ -349,6 +349,27 @@ export default function TimerCustomizationsView() {
 
         <div className="setting-row">
           <div>
+            <div className="setting-label">Immersive Music Background</div>
+            <div className="setting-help">Display selected music video or song artwork behind the study timer</div>
+          </div>
+          <input
+            type="checkbox"
+            checked={Boolean(data?.musicSettings?.immersiveBackground)}
+            onChange={(e) =>
+              setData((prev) => ({
+                ...prev,
+                musicSettings: {
+                  ...prev.musicSettings,
+                  immersiveBackground: e.target.checked,
+                },
+              }))
+            }
+            style={{ width: 18, height: 18, accentColor: 'var(--accent-teal)' }}
+          />
+        </div>
+
+        <div className="setting-row">
+          <div>
             <div className="setting-label">Interface Theme</div>
             <div className="setting-help">Select between crisp daylight mode or distraction-free obsidian dark</div>
           </div>

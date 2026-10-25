@@ -97,6 +97,21 @@ export default function SettingsView() {
 
         <label className="setting-row setting-row--toggle">
           <div>
+            <div className="setting-label">Immersive Music Background</div>
+            <div className="setting-help">Display the selected song’s music video or artwork behind the focus timer</div>
+          </div>
+          <span className="toggle">
+            <input
+              type="checkbox"
+              checked={Boolean(musicSettings.immersiveBackground)}
+              onChange={(e) => updateMusic({ immersiveBackground: e.target.checked })}
+            />
+            <span className="toggle-slider" />
+          </span>
+        </label>
+
+        <label className="setting-row setting-row--toggle">
+          <div>
             <div className="setting-label">Start music when a focus session begins</div>
             <div className="setting-help">Browsers may still require one click before audio can start</div>
           </div>

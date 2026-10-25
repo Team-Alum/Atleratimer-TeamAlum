@@ -1,10 +1,10 @@
 import React, { memo } from 'react';
 import { useTimerState, useTimerActions, useTimerCountdown } from '../../context/useTimer';
-import { RotateCcw, Pause, Play, Coffee, Timer as TimerIcon, VolumeX, Volume2 } from 'lucide-react';
+import { RotateCcw, Pause, Play, Coffee, Timer as TimerIcon, VolumeX, Volume2, Sparkles } from 'lucide-react';
 
 function TimerControls() {
   const { timerState, timerSettings, data } = useTimerState();
-  const { toggleTimer, resetTimer, switchPreset, toggleAmbientSound } = useTimerActions();
+  const { toggleTimer, resetTimer, switchPreset, toggleAmbientSound, toggleImmersiveBackground } = useTimerActions();
   const { remainingSeconds } = useTimerCountdown();
 
   const { isRunning, mode, totalSeconds } = timerState;
@@ -93,6 +93,17 @@ function TimerControls() {
 
       {/* Bottom hint row */}
       <div className="timer-card-footer">
+        <button
+          type="button"
+          className={`sound-toggle-btn ${data?.musicSettings?.immersiveBackground ? 'active' : ''}`}
+          onClick={toggleImmersiveBackground}
+          title="Toggle Immersive Music Background"
+          aria-pressed={!!data?.musicSettings?.immersiveBackground}
+        >
+          <Sparkles size={15} strokeWidth={2.2} />
+          <span>Immersive {data?.musicSettings?.immersiveBackground ? 'on' : 'off'}</span>
+        </button>
+
         <button
           className={`sound-toggle-btn ${data.ambientSoundEnabled ? 'active' : ''}`}
           onClick={toggleAmbientSound}

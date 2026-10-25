@@ -4,11 +4,11 @@ import CircularTimer from './CircularTimer';
 import DurationEditor from './DurationEditor';
 import TimerControls from './TimerControls';
 import FocusFullscreen from './FocusFullscreen';
-import { BookOpen, Pencil, Check, Maximize2 } from 'lucide-react';
+import { BookOpen, Pencil, Check, Maximize2, Sparkles } from 'lucide-react';
 
 function FocusTimerCard() {
-  const { timerState, timerSettings } = useTimerState();
-  const { setSessionTitle } = useTimerActions();
+  const { timerState, timerSettings, data } = useTimerState();
+  const { setSessionTitle, toggleImmersiveBackground } = useTimerActions();
   const { isRunning, sessionTitle, mode, cycleIndex, totalSeconds } = timerState;
   const { remainingSeconds } = useTimerCountdown();
 
@@ -132,6 +132,16 @@ function FocusTimerCard() {
             {statusLabel}
           </div>
 
+          <button
+            type="button"
+            className={`edit-title-btn focus-launch ${data?.musicSettings?.immersiveBackground ? 'active' : ''}`}
+            onClick={toggleImmersiveBackground}
+            title={`Immersive Music Background: ${data?.musicSettings?.immersiveBackground ? 'On' : 'Off'}`}
+            aria-label="Toggle Immersive Music Background"
+            aria-pressed={!!data?.musicSettings?.immersiveBackground}
+          >
+            <Sparkles size={14} strokeWidth={2.2} />
+          </button>
           <button
             type="button"
             className="edit-title-btn focus-launch"

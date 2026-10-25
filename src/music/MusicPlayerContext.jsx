@@ -8,6 +8,7 @@ import {
   MusicProgressContext,
   MusicActionsContext,
 } from './MusicPlayerContextInstance';
+import { useTimerState } from '../context/useTimer';
 import { loadYouTubeApi, describeYtError } from './youtubeIframe';
 import {
   buildVibeQuery,
@@ -59,6 +60,11 @@ function readSessionQueue() {
 }
 
 export function MusicProvider({ children }) {
+  const timerState = useTimerState();
+  const isImmersivePref = Boolean(timerState?.data?.musicSettings?.immersiveBackground);
+  const isFocusView = timerState?.activeView === 'focus';
+  const isImmersive = isImmersivePref && isFocusView;
+
   const [state, setState] = useState(() => {
     const restored = readSessionQueue();
     const index = restored ? Math.min(restored.index ?? 0, restored.queue.length - 1) : -1;
@@ -619,6 +625,15 @@ export function MusicProvider({ children }) {
   // on values that actually change.
   const canGoPrev = state.queue.length > 1 || state.currentTime > 2;
 
+  const isVideoPlayable = Boolean(
+    isImmersive &&
+    state.track?.videoId &&
+    state.track?.embeddable !== false &&
+    !state.unavailable[state.track.videoId] &&
+    state.status !== 'error' &&
+    (state.status === 'playing' || state.status === 'buffering' || state.status === 'ready')
+  );
+
   const playbackValue = useMemo(() => ({
     track: state.track,
     status: state.status,
@@ -635,6 +650,8 @@ export function MusicProvider({ children }) {
     autoVibe: state.autoVibe,
     vibeLoading: state.vibeLoading,
     vibeNote: state.vibeNote,
+    isImmersive,
+    isVideoPlayable,
     isBusy: state.status === 'loading' || state.status === 'buffering',
     hasNext: state.queue.length > 1,
     hasPrev: canGoPrev,
@@ -655,6 +672,8 @@ export function MusicProvider({ children }) {
     state.vibeLoading,
     state.vibeNote,
     canGoPrev,
+    isImmersive,
+    isVideoPlayable,
   ]);
 
   const progressValue = useMemo(() => ({
@@ -684,7 +703,7 @@ export function MusicProvider({ children }) {
           {children}
           {/* Persistent host for the single YouTube player instance.
               The IFrame API replaces this div with the player, so it must never unmount. */}
-          <div className={`yt-host-wrap${state.playerVisible && state.track ? ' visible' : ''}`} aria-hidden={!state.playerVisible}>
+          <div className={`yt-host-wrap${state.playerVisible && state.track ? ' visible' : ''}${isImmersive ? ' is-immersive' : ''}${isVideoPlayable ? ' video-active' : ''}`} aria-hidden={!state.playerVisible && !isImmersive}>
             <div id="atlera-yt-host" />
           </div>
         </MusicPlaybackContext.Provider>

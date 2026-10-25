@@ -554,6 +554,17 @@ export function TimerProvider({ children }) {
     }));
   }, []);
 
+  // Toggle immersive music background
+  const toggleImmersiveBackground = useCallback(() => {
+    setData((prev) => ({
+      ...prev,
+      musicSettings: {
+        ...prev.musicSettings,
+        immersiveBackground: !prev.musicSettings?.immersiveBackground,
+      },
+    }));
+  }, []);
+
   // Keyboard shortcut handler
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -665,6 +676,7 @@ export function TimerProvider({ children }) {
     setShowHistoryModal,
     toggleTheme,
     toggleAmbientSound,
+    toggleImmersiveBackground,
     setSessionTitle,
     startTimer,
     pauseTimer,
@@ -676,6 +688,7 @@ export function TimerProvider({ children }) {
   }), [
     toggleTheme,
     toggleAmbientSound,
+    toggleImmersiveBackground,
     setSessionTitle,
     startTimer,
     pauseTimer,

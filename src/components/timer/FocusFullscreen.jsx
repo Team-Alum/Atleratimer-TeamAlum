@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useTimerState } from '../../context/useTimer';
+import { useTimerState, useTimerActions } from '../../context/useTimer';
 import CircularTimer from './CircularTimer';
 import TimerControls from './TimerControls';
-import { Minimize2 } from 'lucide-react';
+import { Minimize2, Sparkles } from 'lucide-react';
 
 export default function FocusFullscreen({ onExit }) {
-  const { timerState, timerSettings } = useTimerState();
+  const { timerState, timerSettings, data } = useTimerState();
+  const { toggleImmersiveBackground } = useTimerActions();
   const { mode, cycleIndex } = timerState;
   const rootRef = useRef(null);
   const returnFocusRef = useRef(null);
@@ -62,7 +63,18 @@ export default function FocusFullscreen({ onExit }) {
       <div className="atlera-fs-bg" aria-hidden="true" />
       <div className="atlera-fs-scrim" aria-hidden="true" />
 
-      <header className="atlera-fs-topbar">
+      <header className="atlera-fs-topbar" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <button
+          type="button"
+          className={`atlera-fs-exit atlera-fs-immersive-btn ${data?.musicSettings?.immersiveBackground ? 'active' : ''}`}
+          onClick={toggleImmersiveBackground}
+          title={`Immersive Music Background: ${data?.musicSettings?.immersiveBackground ? 'On' : 'Off'}`}
+          aria-label="Toggle Immersive Music Background"
+          aria-pressed={!!data?.musicSettings?.immersiveBackground}
+        >
+          <Sparkles size={16} strokeWidth={2.2} />
+          <span>Immersive {data?.musicSettings?.immersiveBackground ? 'On' : 'Off'}</span>
+        </button>
         <button
           type="button"
           className="atlera-fs-exit"

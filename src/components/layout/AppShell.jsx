@@ -9,6 +9,7 @@ import SettingsView from '../views/SettingsView';
 import SessionHistoryModal from '../stats/SessionHistoryModal';
 import Watermark from './Watermark';
 import AmbientBackground from '../../ambient/AmbientBackground';
+import ImmersiveBackground from '../../music/ImmersiveBackground';
 
 export default function AppShell() {
   const { activeView, showHistoryModal, data, theme } = useTimerState();
@@ -30,6 +31,9 @@ export default function AppShell() {
         reducedMotion={data?.reducedMotion}
         theme={theme}
       />
+
+      {/* Immersive Music Background (video or thumbnail fallback) */}
+      <ImmersiveBackground />
 
       {/* Mobile navigation lives in the single dashboard header (compact) */}
 

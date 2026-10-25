@@ -11,6 +11,7 @@
 //    downloaded the first time they are actually opened.
 
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
+import { useTimerState, useTimerActions } from '../context/useTimer';
 import { useMusicPlayback, useMusicProgress, useMusicActions } from './MusicPlayerContextInstance';
 import { usePlaylists } from './PlaylistContextInstance';
 import { formatTime } from './youtubeIframe';
@@ -26,6 +27,9 @@ const SearchSection = lazy(() => import('./SearchPanel'));
 const PlaylistPanel = lazy(() => import('./PlaylistPanel'));
 
 export default function MusicBar() {
+  const { data } = useTimerState();
+  const { toggleImmersiveBackground } = useTimerActions();
+  const immersiveBackground = Boolean(data?.musicSettings?.immersiveBackground);
   const playback = useMusicPlayback();
   const { actions } = useMusicActions();
   const { playlists, activeId, activePlaylist, actions: playlistActions } = usePlaylists();
@@ -242,6 +246,16 @@ export default function MusicBar() {
             <span className="mp-sub">{subText()}</span>
           </div>
           <div className="mp-header-actions">
+            <button
+              type="button"
+              className={`mb-btn${immersiveBackground ? ' on' : ''}`}
+              onClick={toggleImmersiveBackground}
+              title={`Immersive Music Background: ${immersiveBackground ? 'On' : 'Off'}`}
+              aria-label="Toggle Immersive Music Background"
+              aria-pressed={immersiveBackground}
+            >
+              <Sparkles size={14} />
+            </button>
             <button type="button" className="mb-btn" onClick={collapse} title="Collapse player" aria-label="Collapse player">
               <ChevronDown size={16} />
             </button>

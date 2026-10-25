@@ -4856,3 +4856,204 @@ textarea:focus-visible,
     transition: none !important;
   }
 }
+
+
+/* ==========================================================================
+   Atlera — Immersive Music Background (Video + Thumbnail Fallback)
+   ========================================================================== */
+
+/* Host element for the YouTube player when in immersive mode */
+.yt-host-wrap.is-immersive.video-active {
+  position: fixed;
+  inset: 0;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+  opacity: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.8s ease;
+}
+
+html.atlera-focus-fullscreen .yt-host-wrap.is-immersive.video-active {
+  z-index: 2001;
+}
+
+.yt-host-wrap.is-immersive.video-active #atlera-yt-host,
+.yt-host-wrap.is-immersive.video-active iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100vw;
+  height: 56.25vw; /* 16:9 aspect ratio */
+  min-height: 100vh;
+  min-height: 100dvh;
+  min-width: 177.78vh;
+  min-width: 177.78dvh;
+  opacity: 0.30; /* 25-35% subtle visibility */
+  filter: saturate(115%) contrast(105%);
+  pointer-events: none;
+  border: 0;
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (min-aspect-ratio: 16/9) {
+  .yt-host-wrap.is-immersive.video-active #atlera-yt-host,
+  .yt-host-wrap.is-immersive.video-active iframe {
+    width: 100vw;
+    height: 56.25vw;
+  }
+}
+
+@media (max-aspect-ratio: 16/9) {
+  .yt-host-wrap.is-immersive.video-active #atlera-yt-host,
+  .yt-host-wrap.is-immersive.video-active iframe {
+    width: 177.78vh;
+    height: 100vh;
+  }
+}
+
+/* Immersive background container */
+.atlera-immersive-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+  z-index: 1;
+  transition: opacity 0.8s ease;
+}
+
+html.atlera-focus-fullscreen .atlera-immersive-container {
+  z-index: 2000;
+}
+
+/* Layer 1: Base Dark Atmosphere Layer */
+.atlera-immersive-base {
+  position: absolute;
+  inset: 0;
+  background-color: var(--app-background, #070C14);
+  z-index: 1;
+}
+
+/* Layer 2: Thumbnail Fallback */
+.atlera-immersive-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.32;
+  filter: saturate(110%) brightness(0.95);
+  pointer-events: none;
+  z-index: 2;
+  animation: atlera-fade-in 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Layer 3: Dark Translucent Readability Scrim (65–75% opacity) */
+.atlera-immersive-scrim {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(7, 12, 20, 0.70);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Layer 4: Vignette / Atmospheric Depth Gradient */
+.atlera-immersive-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.08) 35%, rgba(4, 7, 12, 0.82) 100%);
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* Case E: No Track Selected Prompt */
+.atlera-immersive-empty-prompt {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  z-index: 20;
+  animation: atlera-fade-in 0.4s ease;
+}
+
+.immersive-empty-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background-color: var(--glass-bg-strong, rgba(15, 23, 42, 0.85));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.12));
+  backdrop-filter: var(--glass-blur, blur(16px));
+  -webkit-backdrop-filter: var(--glass-blur, blur(16px));
+  color: var(--text-secondary, #94A3B8);
+  font-size: 11.5px;
+  font-weight: 500;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+
+.immersive-empty-icon {
+  color: var(--accent-teal, #38D3E6);
+  flex-shrink: 0;
+}
+
+/* Visual adaptations when Immersive Mode is Active */
+body.atlera-immersive-active .timer-card {
+  background-color: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-border);
+  box-shadow: 0 16px 48px -4px rgba(0, 0, 0, 0.45);
+}
+
+body.atlera-immersive-active .timer-countdown-text {
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.7);
+}
+
+body.atlera-immersive-active .timer-mode-tag {
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+}
+
+/* Fullscreen focus mode adaptations */
+body.atlera-immersive-active .atlera-fs-bg {
+  background-color: transparent !important;
+}
+
+body.atlera-immersive-active .atlera-fs-scrim {
+  background: transparent !important;
+}
+
+.atlera-fs-immersive-btn.active,
+.sound-toggle-btn.active,
+.focus-launch.active {
+  color: var(--accent-teal) !important;
+  border-color: var(--accent-teal) !important;
+}
+
+@keyframes atlera-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

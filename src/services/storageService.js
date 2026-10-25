@@ -74,6 +74,7 @@ function getDefaultInitialData() {
       volume: 0.8,
       rememberLastPlaylist: true,
       musicOnSessionStart: false,
+        immersiveBackground: false,
     },
     timerState: {
       mode: 'focus', // 'focus', 'short_break', 'long_break'

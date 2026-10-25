@@ -1,6 +1,20 @@
 import React, { useEffect, useState } from 'react';
 
 function getTargetTime() {
+  try {
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    if (params && params.get('barricade') === 'force') {
+      const now = new Date();
+      const target = new Date(now);
+      target.setHours(9, 0, 0, 0);
+      if (target <= now) {
+        target.setDate(target.getDate() + 1);
+      }
+      return target.getTime();
+    }
+  } catch (e) {
+    // ignore
+  }
   const now = new Date();
   const target = new Date(now);
   target.setHours(9, 0, 0, 0);

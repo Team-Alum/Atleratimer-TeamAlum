@@ -68,8 +68,10 @@ export default async function handler(req, res) {
   if (q.length < 2) {
     return res.status(400).json({ error: 'bad_request', message: 'Enter at least two characters to search.' });
   }
+  // Optional pagination token for same-vibe autoplay. Kept opaque.
+  const pageToken = truncate(String(req.query?.pageToken || '').trim(), 500);
 
-  const cacheKey = q.toLowerCase();
+  const cacheKey = `${q.toLowerCase()}::${pageToken}`;
   const cached = cache.get(cacheKey);
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
     return res.status(200).json(cached.payload);
@@ -82,6 +84,7 @@ export default async function handler(req, res) {
     searchUrl.searchParams.set('videoEmbeddable', 'true');
     searchUrl.searchParams.set('maxResults', String(MAX_RESULTS));
     searchUrl.searchParams.set('q', q);
+    if (pageToken) searchUrl.searchParams.set('pageToken', pageToken);
     searchUrl.searchParams.set('key', API_KEY);
 
     const searchRes = await fetch(searchUrl);
@@ -131,7 +134,10 @@ export default async function handler(req, res) {
       };
     });
 
-    const payload = { results };
+    const payload = {
+      results,
+      nextPageToken: truncate(searchData.nextPageToken || '', 500) || null,
+    };
     cache.set(cacheKey, { at: Date.now(), payload });
     if (cache.size > CACHE_MAX_ENTRIES) {
       cache.delete(cache.keys().next().value);

@@ -3,6 +3,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useMusicPlayback, useMusicActions } from './MusicPlayerContextInstance';
 import { usePlaylists } from './PlaylistContextInstance';
+import { vibeFromPlaylist } from './vibe';
 import { Play, Plus, Trash2, Check, X, ListMusic, GripVertical, Loader2 } from 'lucide-react';
 
 export default function PlaylistPanel({ onClose }) {
@@ -68,7 +69,7 @@ export default function PlaylistPanel({ onClose }) {
   };
 
   return (
-    <div className="music-drawer music-drawer-right" role="dialog" aria-label="Playlists">
+    <div className="music-drawer" role="dialog" aria-label="Playlists">
       <div className="drawer-header">
         <span className="drawer-title">Playlists</span>
         <div className="drawer-header-side">
@@ -201,7 +202,11 @@ export default function PlaylistPanel({ onClose }) {
                       <button
                         type="button"
                         className="track-play"
-                        onClick={() => music.playAll(active.tracks, active.tracks.findIndex((t) => t.id === track.id))}
+                        onClick={() => music.playAll(
+                          active.tracks,
+                          active.tracks.findIndex((t) => t.id === track.id),
+                          { vibe: vibeFromPlaylist(active) }
+                        )}
                         aria-label={`Play ${track.title}`}
                         title="Play"
                       >

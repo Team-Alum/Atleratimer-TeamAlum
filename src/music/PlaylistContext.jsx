@@ -8,6 +8,7 @@ import { playlistStore, friendlyStoreError, sanitizePlaylistName } from './playl
 import { useAuth } from '../context/useAuth';
 import { useTimerState } from '../context/useTimer';
 import { useMusicActions } from './MusicPlayerContextInstance';
+import { vibeFromPlaylist } from './vibe';
 
 export function PlaylistProvider({ children }) {
   const { user } = useAuth() || {};
@@ -35,7 +36,7 @@ export function PlaylistProvider({ children }) {
     const saved = savedId && list.find((p) => p.id === savedId);
     if (saved?.tracks?.length) {
       setActiveId(saved.id);
-      musicActions.setQueue(saved.tracks, 0);
+      musicActions.setQueue(saved.tracks, 0, vibeFromPlaylist(saved));
     }
   }, [rememberLastPlaylist, lastPlaylist, musicActions]);
 
@@ -130,7 +131,7 @@ export function PlaylistProvider({ children }) {
     const playlist = playlists.find((p) => p.id === id);
     if (!playlist?.tracks?.length) return;
     selectPlaylist(id);
-    musicActions.playAll(playlist.tracks, 0);
+    musicActions.playAll(playlist.tracks, 0, { vibe: vibeFromPlaylist(playlist) });
   }, [playlists, selectPlaylist, musicActions]);
 
   const activePlaylist = useMemo(

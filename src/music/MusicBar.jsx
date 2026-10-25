@@ -1,29 +1,24 @@
-// Compact mini player — an Apple-Dynamic-Island-inspired pill that expands
-// into a floating panel. One instance lives in the sidebar; all playback goes
-// through the shared music context (never a second player).
-//
-// The pill itself is a normal element in the sidebar's flow. The expanded
-// panel, the playlist drawer and the error toast are rendered through a
-// portal into <body>, because the sidebar is a scroll container with a
-// backdrop-filter — both of which would otherwise clip (or re-anchor) a
-// position:fixed child.
+// Compact mini player that lives entirely inside the sidebar.
+// The collapsed state is a Dynamic-Island-inspired pill; expanding renders the
+// player panel, the playlist manager and playback errors inline in the sidebar
+// (no body portal, no floating panel over the timer).
 //
 // Performance notes:
 //  - the pill subscribes to the *playback* context only, so the once-a-second
 //    progress poll does not re-render it (the tiny progress row subscribes to
 //    the progress context on its own);
-//  - the search section and the playlist drawer are code-split and only
+//  - the search section and the playlist manager are code-split and only
 //    downloaded the first time they are actually opened.
 
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useMusicPlayback, useMusicProgress, useMusicActions } from './MusicPlayerContextInstance';
 import { usePlaylists } from './PlaylistContextInstance';
 import { formatTime } from './youtubeIframe';
+import { LANGUAGE_META } from './vibe';
 import {
   Play, Pause, SkipBack, SkipForward, Repeat, Repeat1, Shuffle,
-  Volume2, VolumeX, ListMusic, ChevronDown,
-  Loader2, AlertTriangle, Music2,
+  Volume2, VolumeX, ListMusic, ChevronDown, Lock, Sparkles,
+  Loader2, AlertTriangle, Music2, Waves,
 } from 'lucide-react';
 
 // Both panels are only needed once the user actually opens them.
@@ -37,7 +32,7 @@ export default function MusicBar() {
 
   const [open, setOpen] = useState(false);
   const [everOpened, setEverOpened] = useState(false);
-  const [playlistsOpen, setPlaylistsOpen] = useState(false); // full management drawer
+  const [playlistsOpen, setPlaylistsOpen] = useState(false); // inline playlist manager
   const [pickerOpen, setPickerOpen] = useState(false);       // compact playlist selector
   const rootRef = useRef(null);
   const panelRef = useRef(null);
@@ -45,12 +40,16 @@ export default function MusicBar() {
   const pendingSearchFocusRef = useRef(false);
   const pickerRef = useRef(null);
 
-  const { status, track, queue, index, volume, muted, repeat, shuffle, error } = playback;
+  const {
+    status, track, queue, index, volume, muted, repeat, shuffle, error,
+    vibe, autoVibe, vibeLoading, vibeNote,
+  } = playback;
   const playing = status === 'playing';
   const hasNext = queue.length > 1 || repeat === 'all';
   // `hasPrev` also depends on the playhead, but the provider folds that into
   // a boolean so the pill does not have to subscribe to the progress context.
   const hasPrev = playback.hasPrev;
+  const languageMeta = vibe ? (LANGUAGE_META[vibe.language] || LANGUAGE_META.unknown) : null;
 
   // Callback ref handed to the lazily loaded search section. The first time
   // the panel opens the chunk is still being fetched, so focusing happens as
@@ -66,6 +65,10 @@ export default function MusicBar() {
   const togglePanel = useCallback(() => {
     setEverOpened(true);
     const next = !open;
+    if (!next) {
+      setPickerOpen(false);
+      setPlaylistsOpen(false);
+    }
     pendingSearchFocusRef.current = next;
     setOpen(next);
   }, [open]);
@@ -81,27 +84,36 @@ export default function MusicBar() {
     return () => cancelAnimationFrame(id);
   }, [open]);
 
+  // On short screens the expanded player can be taller than the visible part
+  // of the sidebar. Nudge the sidebar's scroll so the whole player (panel +
+  // pill) is reachable without hunting for it. Harmless when it already fits.
+  useEffect(() => {
+    if (!open) return undefined;
+    const id = requestAnimationFrame(() => {
+      const node = rootRef.current;
+      if (!node) return;
+      const rect = node.getBoundingClientRect();
+      if (rect.bottom > window.innerHeight - 4 || rect.top < 4) {
+        node.scrollIntoView({ block: 'end', behavior: 'smooth' });
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [open]);
+
   // Outside click + Escape collapse the panel (playback keeps running).
-  // The panel, the playlist drawer and the toast are portaled siblings, so
-  // containment has to be checked against each of them — otherwise clicking
-  // a button inside the drawer would dismiss the drawer itself.
+  // Everything now lives inside the sidebar root, so containment is one check.
   useEffect(() => {
     if (!open && !pickerOpen && !playlistsOpen) return undefined;
     const onDown = (e) => {
       const target = e.target;
-      const inPill = rootRef.current?.contains(target);
-      const inPanel = panelRef.current?.contains(target);
-      const inDrawer = Boolean(target.closest?.('.music-drawer'));
-      const inToast = Boolean(target.closest?.('.music-toast'));
-
-      if (!inPill && !inPanel && !inDrawer && !inToast) {
+      if (!rootRef.current?.contains(target)) {
         setOpen(false);
         setPickerOpen(false);
         setPlaylistsOpen(false);
         return;
       }
       // Clicking inside the panel but outside the mini picker closes the picker.
-      if (inPanel && pickerRef.current && !pickerRef.current.contains(target)) {
+      if (pickerRef.current && !pickerRef.current.contains(target)) {
         setPickerOpen(false);
       }
     };
@@ -120,7 +132,31 @@ export default function MusicBar() {
     };
   }, [open, pickerOpen, playlistsOpen]);
 
-  const collapse = useCallback(() => setOpen(false), []);
+  // The playlist manager opens below the search section, which may be outside
+  // the panel's visible scroll area on short screens. Bring it into view as
+  // soon as it (or its lazy-loading placeholder) appears.
+  useEffect(() => {
+    if (!open || !playlistsOpen) return undefined;
+    const panel = panelRef.current;
+    if (!panel) return undefined;
+    const toBottom = () => panel.scrollTo({ top: panel.scrollHeight, behavior: 'smooth' });
+    const id = requestAnimationFrame(toBottom);
+    const observer = new MutationObserver(toBottom);
+    observer.observe(panel, { childList: true, subtree: true });
+    const timeout = setTimeout(() => observer.disconnect(), 1200);
+    return () => {
+      cancelAnimationFrame(id);
+      observer.disconnect();
+      clearTimeout(timeout);
+    };
+  }, [open, playlistsOpen]);
+
+  const collapse = useCallback(() => {
+    setOpen(false);
+    setPickerOpen(false);
+    setPlaylistsOpen(false);
+  }, []);
+
   const repeatIcon = repeat === 'one' ? <Repeat1 size={15} /> : <Repeat size={15} />;
   const volumeIcon = muted || volume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />;
   const busyForTrack = playback.isBusy && status === 'loading';
@@ -173,128 +209,10 @@ export default function MusicBar() {
     </div>
   );
 
-  const panel = (
-    <div
-      ref={panelRef}
-      className={`music-panel${open ? ' open' : ''}`}
-      role="dialog"
-      aria-label="Music player"
-      aria-hidden={!open}
-    >
-      <div className="mp-header">
-        <span className="mp-thumb" aria-hidden="true">
-          {track?.thumbnail
-            ? <img src={track.thumbnail} alt="" width={36} height={36} />
-            : <Music2 size={16} />}
-        </span>
-        <div className="mp-meta">
-          <span className="mp-title" title={track?.title}>{track ? track.title : 'Nothing playing'}</span>
-          <span className="mp-sub">{subText()}</span>
-        </div>
-        <div className="mp-header-actions">
-          <button type="button" className="mb-btn" onClick={collapse} title="Collapse player" aria-label="Collapse player">
-            <ChevronDown size={16} />
-          </button>
-        </div>
-      </div>
-
-      <Suspense fallback={<div className="mp-search-placeholder" aria-hidden="true" />}>
-        {everOpened && <SearchSection inputRef={registerSearchInput} />}
-      </Suspense>
-
-      <PlayerProgress />
-
-      <div className="mp-controls">
-        <div className="mb-transport">
-          <button type="button" className="mb-btn" onClick={actions.prev} disabled={!hasPrev && !track} title="Previous track" aria-label="Previous track">
-            <SkipBack size={16} />
-          </button>
-          <button
-            type="button"
-            className="mb-btn mb-play"
-            onClick={actions.toggle}
-            disabled={!track && queue.length === 0}
-            title={playing ? 'Pause music' : 'Play music'}
-            aria-label={playing ? 'Pause music' : 'Play music'}
-          >
-            {playback.isBusy ? <Loader2 size={16} className="spin" /> : playing ? <Pause size={16} /> : <Play size={16} />}
-          </button>
-          <button type="button" className="mb-btn" onClick={actions.next} disabled={!hasNext && queue.length < 2} title="Next track" aria-label="Next track">
-            <SkipForward size={16} />
-          </button>
-        </div>
-
-        <div className="mp-volume">
-          <button type="button" className="mb-btn" onClick={actions.toggleMute} title={muted ? 'Unmute' : 'Mute'} aria-label={muted ? 'Unmute' : 'Mute'}>
-            {volumeIcon}
-          </button>
-          <input
-            type="range"
-            className="mb-range mb-volume-inline"
-            min={0}
-            max={100}
-            value={Math.round((muted ? 0 : volume) * 100)}
-            onChange={(e) => actions.setVolume(Number(e.target.value) / 100)}
-            aria-label="Volume"
-          />
-        </div>
-
-        <div className="mp-secondary">
-          <button type="button" className={`mb-btn${repeat !== 'off' ? ' on' : ''}`} onClick={actions.cycleRepeat} title={`Repeat: ${repeat}`} aria-label={`Repeat: ${repeat}. Click to change.`}>
-            {repeatIcon}
-          </button>
-          <button type="button" className={`mb-btn${shuffle ? ' on' : ''}`} onClick={actions.toggleShuffle} title={shuffle ? 'Shuffle on' : 'Shuffle off'} aria-label="Toggle shuffle" aria-pressed={shuffle}>
-            <Shuffle size={15} />
-          </button>
-          <button type="button" className="mb-btn" onClick={() => setPlaylistsOpen(true)} title="Manage playlists" aria-label="Manage playlists">
-            <ListMusic size={15} />
-          </button>
-        </div>
-      </div>
-
-      {/* Compact playlist selector */}
-      <div className="mp-playlists" ref={pickerRef}>
-        <button
-          type="button"
-          className="mp-playlist-btn"
-          onClick={() => setPickerOpen((v) => !v)}
-          aria-expanded={pickerOpen}
-          aria-haspopup="menu"
-        >
-          <ListMusic size={13} />
-          <span className="mp-playlist-name">{activePlaylist ? activePlaylist.name : 'Choose a playlist'}</span>
-          <ChevronDown size={13} style={{ transform: pickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-        </button>
-        {pickerOpen && (
-          <ul className="mp-playlist-menu" role="menu" aria-label="Playlists">
-            {playlists.length === 0 && (
-              <li className="mp-playlist-empty">No playlists yet — use + on a search result to create one.</li>
-            )}
-            {playlists.map((p) => (
-              <li key={p.id} role="none">
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={`mp-playlist-item${activeId === p.id ? ' active' : ''}`}
-                  onClick={() => { playlistActions.playPlaylist(p.id); setPickerOpen(false); }}
-                  disabled={!p.tracks?.length}
-                  title={p.tracks?.length ? `Play ${p.name}` : `${p.name} is empty`}
-                >
-                  <span className="mp-playlist-item-name">{p.name}</span>
-                  <span className="mp-playlist-count tabular-nums">{p.tracks?.length || 0}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-
   const toast = error && status === 'error' && (
-    <div className="music-toast" role="alert">
+    <div className="music-toast music-toast--inline" role="alert">
       <AlertTriangle size={14} />
-      <span>{error.message}</span>
+      <span className="music-toast-text">{error.message}</span>
       <button type="button" className="link-btn" onClick={actions.retry}>Retry</button>
       {queue.length > 1 && <button type="button" className="link-btn" onClick={actions.next}>Skip</button>}
       <button type="button" className="link-btn muted" onClick={actions.clearError}>Dismiss</button>
@@ -303,27 +221,175 @@ export default function MusicBar() {
 
   return (
     <div className="music-root music-root--sidebar" ref={rootRef}>
-      {pill}
+      {toast}
 
-      {typeof document !== 'undefined' && createPortal(
-        <>
-          {panel}
-          {toast}
-          {playlistsOpen && (
-            <Suspense fallback={(
-              <div className="music-drawer music-drawer-right" role="dialog" aria-label="Playlists">
-                <div className="drawer-header">
-                  <span className="drawer-title">Playlists</span>
-                </div>
-                <p className="drawer-message"><Loader2 size={13} className="spin" style={{ verticalAlign: '-2px' }} /> Loading…</p>
-              </div>
-            )}>
-              <PlaylistPanel onClose={() => setPlaylistsOpen(false)} />
-            </Suspense>
+      <div
+        ref={panelRef}
+        className={`music-panel music-panel--inline${open ? ' open' : ''}`}
+        role="dialog"
+        aria-label="Music player"
+        aria-hidden={!open}
+        hidden={!open}
+      >
+        <div className="mp-header">
+          <span className="mp-thumb" aria-hidden="true">
+            {track?.thumbnail
+              ? <img src={track.thumbnail} alt="" width={36} height={36} />
+              : <Music2 size={16} />}
+          </span>
+          <div className="mp-meta">
+            <span className="mp-title" title={track?.title}>{track ? track.title : 'Nothing playing'}</span>
+            <span className="mp-sub">{subText()}</span>
+          </div>
+          <div className="mp-header-actions">
+            <button type="button" className="mb-btn" onClick={collapse} title="Collapse player" aria-label="Collapse player">
+              <ChevronDown size={16} />
+            </button>
+          </div>
+        </div>
+
+        <PlayerProgress />
+
+        <div className={`mp-vibe${vibe ? '' : ' empty'}${autoVibe ? '' : ' off'}`}>
+          <span className="mp-vibe-mark" aria-hidden="true"><Waves size={13} /></span>
+          <span className="mp-vibe-copy">
+            <span className="mp-vibe-label" title={vibe?.query || 'Same-vibe autoplay'}>
+              {vibe ? vibe.label : 'Same-vibe autoplay'}
+            </span>
+            <span className="mp-vibe-sub">
+              {vibeLoading
+                ? <><Loader2 size={9} className="spin" /> Finding more…</>
+                : vibe
+                  ? <><Lock size={9} /> {languageMeta.label}</>
+                  : 'Keeps the current mood and language'}
+            </span>
+          </span>
+          <button
+            type="button"
+            className={`mp-vibe-toggle${autoVibe ? ' on' : ''}`}
+            onClick={actions.toggleAutoVibe}
+            aria-pressed={autoVibe}
+            aria-label={`Same-vibe autoplay ${autoVibe ? 'on' : 'off'}`}
+            title={autoVibe ? 'Same-vibe autoplay is on' : 'Same-vibe autoplay is off'}
+          >
+            {vibeLoading ? <Loader2 size={12} className="spin" /> : <Sparkles size={12} />}
+            <span>{autoVibe ? 'Auto' : 'Off'}</span>
+          </button>
+        </div>
+
+        {vibeNote && <p className="mp-vibe-note" role="status">{vibeNote}</p>}
+
+        <div className="mp-controls">
+          <div className="mb-transport">
+            <button type="button" className="mb-btn" onClick={actions.prev} disabled={!hasPrev && !track} title="Previous track" aria-label="Previous track">
+              <SkipBack size={16} />
+            </button>
+            <button
+              type="button"
+              className="mb-btn mb-play"
+              onClick={actions.toggle}
+              disabled={!track && queue.length === 0}
+              title={playing ? 'Pause music' : 'Play music'}
+              aria-label={playing ? 'Pause music' : 'Play music'}
+            >
+              {playback.isBusy ? <Loader2 size={16} className="spin" /> : playing ? <Pause size={16} /> : <Play size={16} />}
+            </button>
+            <button type="button" className="mb-btn" onClick={actions.next} disabled={!hasNext && queue.length < 2} title="Next track" aria-label="Next track">
+              <SkipForward size={16} />
+            </button>
+          </div>
+
+          <div className="mp-volume">
+            <button type="button" className="mb-btn" onClick={actions.toggleMute} title={muted ? 'Unmute' : 'Mute'} aria-label={muted ? 'Unmute' : 'Mute'}>
+              {volumeIcon}
+            </button>
+            <input
+              type="range"
+              className="mb-range mb-volume-inline"
+              min={0}
+              max={100}
+              value={Math.round((muted ? 0 : volume) * 100)}
+              onChange={(e) => actions.setVolume(Number(e.target.value) / 100)}
+              aria-label="Volume"
+            />
+          </div>
+
+          <div className="mp-secondary">
+            <button type="button" className={`mb-btn${repeat !== 'off' ? ' on' : ''}`} onClick={actions.cycleRepeat} title={`Repeat: ${repeat}`} aria-label={`Repeat: ${repeat}. Click to change.`}>
+              {repeatIcon}
+            </button>
+            <button type="button" className={`mb-btn${shuffle ? ' on' : ''}`} onClick={actions.toggleShuffle} title={shuffle ? 'Shuffle on' : 'Shuffle off'} aria-label="Toggle shuffle" aria-pressed={shuffle}>
+              <Shuffle size={15} />
+            </button>
+            <button
+              type="button"
+              className="mb-btn"
+              onClick={() => { setPlaylistsOpen(true); setPickerOpen(false); }}
+              title="Manage playlists"
+              aria-label="Manage playlists"
+            >
+              <ListMusic size={15} />
+            </button>
+          </div>
+        </div>
+
+        <Suspense fallback={<div className="mp-search-placeholder" aria-hidden="true" />}>
+          {everOpened && <SearchSection inputRef={registerSearchInput} />}
+        </Suspense>
+
+        {/* Compact playlist selector */}
+        <div className="mp-playlists" ref={pickerRef}>
+          <button
+            type="button"
+            className="mp-playlist-btn"
+            onClick={() => setPickerOpen((v) => !v)}
+            aria-expanded={pickerOpen}
+            aria-haspopup="menu"
+          >
+            <ListMusic size={13} />
+            <span className="mp-playlist-name">{activePlaylist ? activePlaylist.name : 'Choose a playlist'}</span>
+            <ChevronDown size={13} style={{ transform: pickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+          </button>
+          {pickerOpen && (
+            <ul className="mp-playlist-menu" role="menu" aria-label="Playlists">
+              {playlists.length === 0 && (
+                <li className="mp-playlist-empty">No playlists yet — use + on a search result to create one.</li>
+              )}
+              {playlists.map((p) => (
+                <li key={p.id} role="none">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={`mp-playlist-item${activeId === p.id ? ' active' : ''}`}
+                    onClick={() => { playlistActions.playPlaylist(p.id); setPickerOpen(false); }}
+                    disabled={!p.tracks?.length}
+                    title={p.tracks?.length ? `Play ${p.name}` : `${p.name} is empty`}
+                  >
+                    <span className="mp-playlist-item-name">{p.name}</span>
+                    <span className="mp-playlist-count tabular-nums">{p.tracks?.length || 0}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
-        </>,
-        document.body
-      )}
+        </div>
+
+        {playlistsOpen && (
+          <Suspense fallback={(
+            <div className="music-drawer" role="dialog" aria-label="Playlists">
+              <div className="drawer-header">
+                <span className="drawer-title">Playlists</span>
+                <button type="button" className="drawer-close" onClick={() => setPlaylistsOpen(false)} aria-label="Close playlists">✕</button>
+              </div>
+              <p className="drawer-message"><Loader2 size={13} className="spin" style={{ verticalAlign: '-2px' }} /> Loading…</p>
+            </div>
+          )}>
+            <PlaylistPanel onClose={() => setPlaylistsOpen(false)} />
+          </Suspense>
+        )}
+      </div>
+
+      {pill}
     </div>
   );
 }

@@ -5,10 +5,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useMusicPlayback, useMusicActions } from './MusicPlayerContextInstance';
 import { usePlaylists } from './PlaylistContextInstance';
 import { formatTime } from './youtubeIframe';
+import { buildVibeQuery, makeVibe, trackMatchesLanguage } from './vibe';
 import { Search, Play, Plus, Loader2, Music2, Check } from 'lucide-react';
 
-const SUGGESTIONS = ['Lo-fi study music', 'Ambient music', 'Rain sounds', 'Piano music', 'Classical study music', 'Instrumental music', 'Nature sounds', 'White noise'];
-const clientCache = new Map(); // query -> results (session-scoped)
+// Language-aware starting points. The first two deliberately pin the language
+// so same-vibe autoplay has nothing to guess.
+const SUGGESTIONS = ['Hindi lo-fi', 'English lo-fi', 'Bollywood chill', 'Instrumental focus', 'Piano study', 'Rain sounds', 'Nature sounds', 'White noise'];
+const clientCache = new Map(); // query -> { results, nextPageToken } (session-scoped)
 
 export default function SearchSection({ inputRef }) {
   const playback = useMusicPlayback();
@@ -16,6 +19,8 @@ export default function SearchSection({ inputRef }) {
   const { playlists, actions: playlistActions } = usePlaylists();
 
   const [query, setQuery] = useState('');
+  const [searchedQuery, setSearchedQuery] = useState('');
+  const [searchedNextToken, setSearchedNextToken] = useState(null);
   const [results, setResults] = useState([]);
   const [status, setStatus] = useState('idle'); // idle | loading | done | error
   const [message, setMessage] = useState('');
@@ -31,15 +36,21 @@ export default function SearchSection({ inputRef }) {
       setStatus('idle');
       return;
     }
+    setSearchedQuery(q);
+    setSearchedNextToken(null);
     const cached = clientCache.get(q.toLowerCase());
     if (cached) {
-      setResults(cached);
+      setResults(cached.results);
+      setSearchedNextToken(cached.nextPageToken || null);
       setStatus('done');
       return;
     }
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    // Drop the previous list while the new query loads so a stale row can never
+    // start a track under the wrong vibe.
+    setResults([]);
     setStatus('loading');
     setMessage('');
     try {
@@ -49,8 +60,10 @@ export default function SearchSection({ inputRef }) {
         throw new Error(body?.message || 'Search failed — please try again.');
       }
       const list = Array.isArray(body.results) ? body.results : [];
-      clientCache.set(q.toLowerCase(), list);
+      const nextPageToken = body.nextPageToken || null;
+      clientCache.set(q.toLowerCase(), { results: list.map((r) => ({ ...r, id: r.videoId })), nextPageToken });
       setResults(list.map((r) => ({ ...r, id: r.videoId })));
+      setSearchedNextToken(nextPageToken);
       setStatus('done');
       if (!list.length) setMessage('No tracks found for that search — try a different phrase.');
     } catch (err) {
@@ -59,6 +72,28 @@ export default function SearchSection({ inputRef }) {
       setMessage(err.message || 'Search failed — please try again.');
     }
   }, []);
+
+  const playResult = useCallback((track, index) => {
+    const seed = searchedQuery || query;
+    const vibe = makeVibe(seed, track);
+    // If the first result page also supplied a cursor, reuse it: the prefetch
+    // can jump straight to unseen tracks instead of re-fetching page one.
+    // Page tokens are query-specific, so only adopt it when the autoplay query
+    // is exactly the phrase that produced these results.
+    if (vibe && searchedNextToken && buildVibeQuery(vibe).toLowerCase() === seed.trim().toLowerCase()) {
+      vibe.pageToken = searchedNextToken;
+    }
+    // A search page can contain a stray track in another language. Keep the
+    // track the listener picked, but trim the rest of the seed queue to the
+    // vibe's language so the very first queue cannot cross the language lock.
+    const queue = results.filter((t, i) => i === index || trackMatchesLanguage(t, vibe?.language));
+    const queueIndex = Math.max(0, queue.findIndex((t) => t.videoId === track.videoId));
+    actions.playTrack(track, {
+      queue,
+      index: queueIndex,
+      vibe,
+    });
+  }, [actions, query, results, searchedQuery, searchedNextToken]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -114,9 +149,11 @@ export default function SearchSection({ inputRef }) {
       {status === 'done' && message && <p className="drawer-message">{message}</p>}
 
       <ul className="search-results" aria-live="polite">
-        {results.map((track) => (
+        {results.map((track, resultIndex) => (
           <li key={track.videoId} className={`search-result${playback.track?.videoId === track.videoId ? ' active' : ''}`}>
-            <img src={track.thumbnail} alt="" className="result-thumb" loading="lazy" width={48} height={36} />
+            {track.thumbnail
+              ? <img src={track.thumbnail} alt="" className="result-thumb" loading="lazy" width={48} height={36} />
+              : <span className="result-thumb" aria-hidden="true" />}
             <div className="result-meta">
               <span className="result-title" title={track.title}>{track.title}</span>
               <span className="result-sub">{track.channel}{track.duration ? ` · ${formatTime(track.duration)}` : ''}{track.embeddable === false ? ' · not embeddable' : ''}</span>
@@ -131,10 +168,10 @@ export default function SearchSection({ inputRef }) {
                   <button
                     type="button"
                     className="icon-btn"
-                    title={track.embeddable === false ? 'This track can’t be embedded' : 'Play'}
+                    title={track.embeddable === false ? 'This track can’t be embedded' : 'Play with same-vibe autoplay'}
                     aria-label={`Play ${track.title}`}
                     disabled={track.embeddable === false}
-                    onClick={() => actions.playTrack(track)}
+                    onClick={() => playResult(track, resultIndex)}
                   >
                     {playback.isBusy && playback.track?.videoId === track.videoId ? <Loader2 size={14} className="spin" /> : <Play size={14} />}
                   </button>
@@ -166,7 +203,7 @@ export default function SearchSection({ inputRef }) {
       </ul>
 
       {status === 'done' && results.length > 0 && (
-        <p className="drawer-hint">Press <Music2 size={11} style={{ verticalAlign: '-2px' }} /> play to listen now, or + to save for later.</p>
+        <p className="drawer-hint">Press <Music2 size={11} style={{ verticalAlign: '-2px' }} /> play to listen with the same vibe, or + to save.</p>
       )}
     </div>
   );

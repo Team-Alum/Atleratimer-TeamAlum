@@ -5555,3 +5555,55 @@ body.atlera-immersive-active .timer-mode-tag {
   color: var(--text-muted);
   background: var(--surface-soft);
 }
+
+
+/* Mobile Sidebar Close Button & Workspace Navigation */
+.workspace-badge-row.clickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.workspace-badge-row.clickable:hover {
+  background-color: var(--surface-soft);
+  border-color: var(--border-medium);
+}
+
+.workspace-badge-row.clickable:active {
+  transform: scale(0.99);
+}
+
+.sidebar-close-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-left: auto;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-soft);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.sidebar-close-btn:hover {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+@media (max-width: 900px) {
+  .sidebar-close-btn {
+    display: inline-flex;
+  }
+}
+
+.status-dot.synced {
+  background-color: var(--state-success, #34D399);
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.45);
+}
+
+.status-dot.local {
+  background-color: var(--text-muted);
+}

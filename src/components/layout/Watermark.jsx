@@ -8,12 +8,8 @@ function Watermark() {
     <div className="app-watermark" role="contentinfo" aria-label="Copyright notice">
       <span>© {YEAR}</span>
       <span className="watermark-brand">Atlera</span>
-      <span>by Team Alum</span>
       <span className="watermark-sep" aria-hidden="true">·</span>
-      <span>
-        Founders: <span className="watermark-founders">Sudarshan</span> &amp;{' '}
-        <span className="watermark-founders">Soham</span>
-      </span>
+      <span>Startup &amp; Founder of Team Alum, Sudarshan &amp; Soham</span>
       <span className="watermark-sep" aria-hidden="true">·</span>
       <span>All Rights Reserved</span>
     </div>

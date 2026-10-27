@@ -18,7 +18,7 @@ export default function AppShell() {
 
   // Stable callbacks — the children are memoised, so a new function identity
   // on every render would defeat the memoisation.
-  const openMobileMenu = useCallback(() => setMobileMenuOpen(true), []);
+  const toggleMobileMenu = useCallback(() => setMobileMenuOpen((open) => !open), []);
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
   const closeHistoryModal = useCallback(() => setShowHistoryModal(false), [setShowHistoryModal]);
 
@@ -35,8 +35,6 @@ export default function AppShell() {
       {/* Immersive Music Background (video or thumbnail fallback) */}
       <ImmersiveBackground />
 
-      {/* Mobile navigation lives in the single dashboard header (compact) */}
-
       {/* Responsive Sidebar */}
       <Sidebar
         isOpen={mobileMenuOpen}
@@ -46,7 +44,7 @@ export default function AppShell() {
       {/* Main Workspace */}
       <main className="main-workspace">
         <DashboardHeader
-          onOpenMobileMenu={openMobileMenu}
+          onOpenMobileMenu={toggleMobileMenu}
           mobileMenuOpen={mobileMenuOpen}
         />
 

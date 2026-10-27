@@ -1,6 +1,6 @@
 import React, { memo, useEffect, useState } from 'react';
 import { useTimerState, useTimerActions } from '../../context/useTimer';
-import { Bell, Sun, Moon, Menu } from 'lucide-react';
+import { Bell, Sun, Moon, Menu, X } from 'lucide-react';
 import { notificationService } from '../../services/notificationService';
 
 // Local uppercase date, e.g. "TUESDAY, OCTOBER 20".
@@ -73,11 +73,12 @@ function DashboardHeader({ onOpenMobileMenu, mobileMenuOpen = false }) {
           <button
             className="icon-button mobile-menu-btn"
             onClick={onOpenMobileMenu}
-            aria-label="Open sidebar navigation"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileMenuOpen}
             aria-controls="app-sidebar"
+            title={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
-            <Menu size={18} />
+            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         )}
         <div className="header-titles">

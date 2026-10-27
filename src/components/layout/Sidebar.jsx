@@ -1,11 +1,13 @@
 import React, { memo, useEffect } from 'react';
 import { useTimerState, useTimerActions } from '../../context/useTimer';
+import { useAuth } from '../../context/useAuth';
 import MusicBar from '../../music/MusicBar';
-import { Timer, Sliders, Palette, Settings, Sprout, Hourglass } from 'lucide-react';
+import { Timer, Sliders, Palette, Settings, Sprout, Hourglass, X } from 'lucide-react';
 
 function Sidebar({ isOpen, onClose }) {
   const { activeView } = useTimerState();
   const { setActiveView } = useTimerActions();
+  const { isSignedIn, user } = useAuth() || {};
 
   // The drawer is modal on small screens: lock the page behind it and let
   // Escape dismiss it, without affecting the always-visible desktop sidebar.
@@ -37,7 +39,7 @@ function Sidebar({ isOpen, onClose }) {
 
   return (
     <>
-      {isOpen && <div className="sidebar-backdrop" onClick={onClose} />}
+      {isOpen && <div className="sidebar-backdrop" onClick={onClose} aria-hidden="true" />}
       <aside id="app-sidebar" className={`app-sidebar ${isOpen ? 'open' : ''}`}>
         {/* Brand */}
         <div className="sidebar-brand">
@@ -48,15 +50,44 @@ function Sidebar({ isOpen, onClose }) {
             <div className="brand-title">Atleratimer</div>
             <div className="brand-subtitle">FOCUS TIMER</div>
           </div>
+          {onClose && (
+            <button
+              type="button"
+              className="sidebar-close-btn"
+              onClick={onClose}
+              aria-label="Close menu"
+              title="Close menu"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
 
         {/* Workspace section */}
         <div className="sidebar-section-label">YOUR SPACE</div>
-        <div className="workspace-badge-row">
-          <div className="workspace-avatar">AT</div>
+        <div
+          className="workspace-badge-row clickable"
+          onClick={() => handleNavClick('settings')}
+          role="button"
+          tabIndex={0}
+          title="Account & sync settings"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleNavClick('settings');
+            }
+          }}
+        >
+          <div className="workspace-avatar">
+            {isSignedIn ? (user?.email?.[0]?.toUpperCase() || 'U') : 'AT'}
+          </div>
           <div>
-            <div className="workspace-title">Personal workspace</div>
-            <div className="workspace-subtitle">All devices in sync</div>
+            <div className="workspace-title">
+              {isSignedIn ? (user?.email?.split('@')[0] || 'User workspace') : 'Personal workspace'}
+            </div>
+            <div className="workspace-subtitle">
+              {isSignedIn ? 'Cloud sync active' : 'Local device only'}
+            </div>
           </div>
         </div>
 
@@ -99,8 +130,8 @@ function Sidebar({ isOpen, onClose }) {
 
         {/* Sidebar Footer */}
         <div className="sidebar-footer">
-          <span className="status-dot" />
-          <span>Saved locally · Synced just now</span>
+          <span className={`status-dot ${isSignedIn ? 'synced' : 'local'}`} />
+          <span>{isSignedIn ? 'Cloud synced' : 'Saved locally'}</span>
         </div>
       </aside>
     </>

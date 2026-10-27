@@ -3,7 +3,7 @@ import { useTimerState, useTimerActions } from '../../context/useTimer';
 import { Check, RotateCcw } from 'lucide-react';
 
 export default function CustomizableTimeView() {
-  const { timerSettings } = useTimerState();
+  const { timerSettings, timerState } = useTimerState();
   const { setData, setActiveView, resetTimer } = useTimerActions();
 
   const [form, setForm] = useState({
@@ -72,7 +72,16 @@ export default function CustomizableTimeView() {
       },
     }));
 
-    resetTimer(focus * 60);
+    // Only reset the dial if the timer is currently idle and unstarted
+    const isRunning = timerState.isRunning;
+    const isFresh = !isRunning && (timerState.remainingSeconds >= timerState.totalSeconds);
+    if (!isRunning && isFresh) {
+      let targetSecs = focus * 60;
+      if (timerState.mode === 'short_break') targetSecs = sBreak * 60;
+      else if (timerState.mode === 'long_break') targetSecs = lBreak * 60;
+      resetTimer(targetSecs);
+    }
+
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
   };

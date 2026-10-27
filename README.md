@@ -23,7 +23,7 @@
   - `Settings`: JSON export/import data portability, privacy controls, and local storage management.
 - **Keyboard Shortcuts**:
   - <kbd>Space</kbd>: Pause or resume timer.
-  - <kbd>Ctrl</kbd> + <kbd>R</kbd>: Reset current timer (with native refresh prevention).
+  - <kbd>Alt</kbd> + <kbd>R</kbd>: Reset current timer (preserves native browser refresh).
 
 ---
 

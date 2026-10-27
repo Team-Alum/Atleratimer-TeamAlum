@@ -184,14 +184,15 @@ export function TimerProvider({ children }) {
   }, [reducedMotion, atmosphere, theme]);
 
   // Move to next session in Pomodoro cycle
-  const handleSessionCompletion = useCallback(() => {
+  const handleSessionCompletion = useCallback((options = {}) => {
     const isFocus = mode === 'focus';
-    const now = new Date();
-    const day = getLocalDateString(now);
+    const away = Boolean(options?.completedWhileAway);
+    const completionDate = endTimestampRef.current ? new Date(endTimestampRef.current) : new Date();
+    const day = getLocalDateString(completionDate);
     const durationMins = Math.round(timerTotalSeconds / 60);
 
-    // Play chime & send notification
-    if (soundEnabled) {
+    // Play chime & send notification (if user wasn't away for a long duration)
+    if (soundEnabled && !away) {
       soundService.playCompletionChime(chimeType);
     }
 
@@ -233,11 +234,11 @@ export function TimerProvider({ children }) {
       id: 'session-' + Date.now(),
       title: sessionTitle || (isFocus ? 'Focus session' : 'Break'),
       type: mode,
-      startTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+      startTime: completionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
       durationMinutes: durationMins,
       completed: true,
       date: day,
-      timestamp: Date.now(),
+      timestamp: completionDate.getTime(),
     };
 
     // Fire-and-forget cloud backup of the completed session
@@ -247,7 +248,8 @@ export function TimerProvider({ children }) {
       });
     }
 
-    const shouldAutoStart = isFocus ? timerSettings.autoStartBreaks : timerSettings.autoStartFocus;
+    // Never auto-start subsequent sessions in the background while user was away
+    const shouldAutoStart = !away && (isFocus ? timerSettings.autoStartBreaks : timerSettings.autoStartFocus);
     const nextTotal = nextDurationMins * 60;
     const nextEnd = shouldAutoStart ? Date.now() + nextTotal * 1000 : null;
 
@@ -274,6 +276,7 @@ export function TimerProvider({ children }) {
         history: updatedHistory,
         timerState: {
           ...prev.timerState,
+          pendingCompletion: false,
           mode: nextMode,
           cycleIndex: nextCycle,
           remainingSeconds: nextTotal,
@@ -302,6 +305,16 @@ export function TimerProvider({ children }) {
     userId,
     publishCountdown,
   ]);
+
+  // Handle session completed while tab was asleep or closed
+  useEffect(() => {
+    if (data?.timerState?.pendingCompletion) {
+      const timer = setTimeout(() => {
+        handleSessionCompletion({ completedWhileAway: true });
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [data?.timerState?.pendingCompletion, handleSessionCompletion]);
 
   // Tick function using exact timestamp difference.
   //
@@ -415,7 +428,7 @@ export function TimerProvider({ children }) {
         ...prev.timerState,
         remainingSeconds: remaining,
         isRunning: true,
-        lastStartedAt: Date.now(),
+        lastStartedAt: prev.timerState.lastStartedAt || Date.now(),
         expectedEndAt: end,
       },
     }));
@@ -587,8 +600,8 @@ export function TimerProvider({ children }) {
         toggleTimer();
       }
 
-      // Ctrl+R to reset (prevent page refresh)
-      if (e.ctrlKey && (e.key === 'r' || e.key === 'R')) {
+      // Alt+R to reset (leaves Ctrl+R unintercepted for native browser reload)
+      if (e.altKey && (e.key === 'r' || e.key === 'R')) {
         e.preventDefault();
         resetTimer();
       }
@@ -604,16 +617,16 @@ export function TimerProvider({ children }) {
     return (data.history || []).filter((h) => h.date === todayStr && h.type === 'focus' && h.completed).length;
   }, [data.history, todayStr]);
 
-  // Calculate last 7 days metrics
-  const { last7DaysData, rhythmText } = useMemo(() => {
+  // Calculate last 7 days metrics + week-over-week rhythm delta
+  const { last7DaysData, rhythmText, rhythmBadge } = useMemo(() => {
     const items = [];
     const daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    let totalMins = 0;
+    let thisWeekMins = 0;
 
     for (let i = 6; i >= 0; i -= 1) {
       const { dateStr, dayOfWeek } = getOffsetDateString(todayStr, -i);
       const minutes = data.dailyActivity[dateStr] || 0;
-      totalMins += minutes;
+      thisWeekMins += minutes;
 
       items.push({
         dateStr,
@@ -623,11 +636,36 @@ export function TimerProvider({ children }) {
       });
     }
 
-    const rhythmHours = Math.floor(totalMins / 60);
-    const rhythmRemainingMins = totalMins % 60;
+    // Previous 7-day period (days -13 to -7)
+    let priorWeekMins = 0;
+    for (let i = 13; i >= 7; i -= 1) {
+      const { dateStr } = getOffsetDateString(todayStr, -i);
+      priorWeekMins += data.dailyActivity[dateStr] || 0;
+    }
+
+    let badge = null;
+    if (thisWeekMins === 0 && priorWeekMins === 0) {
+      badge = { text: 'Starting fresh', type: 'neutral' };
+    } else if (priorWeekMins === 0 && thisWeekMins > 0) {
+      badge = { text: 'First week', type: 'positive' };
+    } else if (priorWeekMins > 0) {
+      const diff = thisWeekMins - priorWeekMins;
+      const pct = Math.round((diff / priorWeekMins) * 100);
+      if (pct > 0) {
+        badge = { text: `+${pct}% vs last week`, type: 'positive' };
+      } else if (pct < 0) {
+        badge = { text: `${pct}% vs last week`, type: 'negative' };
+      } else {
+        badge = { text: 'On pace with last week', type: 'neutral' };
+      }
+    }
+
+    const rhythmHours = Math.floor(thisWeekMins / 60);
+    const rhythmRemainingMins = thisWeekMins % 60;
     return {
       last7DaysData: items,
       rhythmText: `${rhythmHours}h ${rhythmRemainingMins}m`,
+      rhythmBadge: badge,
     };
   }, [data.dailyActivity, todayStr]);
 
@@ -652,6 +690,7 @@ export function TimerProvider({ children }) {
     completedFocusSessionsToday,
     last7DaysData,
     rhythmText,
+    rhythmBadge,
   }), [
     data,
     activeView,
@@ -665,6 +704,7 @@ export function TimerProvider({ children }) {
     completedFocusSessionsToday,
     last7DaysData,
     rhythmText,
+    rhythmBadge,
   ]);
 
   // The action callbacks below keep a stable identity between renders, so

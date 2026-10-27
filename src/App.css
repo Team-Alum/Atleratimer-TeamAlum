@@ -5520,3 +5520,38 @@ body.atlera-immersive-active .timer-mode-tag {
     opacity: 1;
   }
 }
+
+
+/* Honest Session Log & Rhythm Badge States */
+.log-icon-box.ready {
+  background-color: var(--surface-soft);
+  color: var(--text-secondary);
+}
+
+.log-icon-box.paused {
+  background-color: var(--surface-soft);
+  color: var(--state-warning);
+}
+
+.log-time-right.paused {
+  color: var(--state-warning);
+}
+
+.log-time-right.ready {
+  color: var(--text-secondary);
+}
+
+.rhythm-badge.positive {
+  color: var(--accent-teal);
+  background: var(--accent-soft);
+}
+
+.rhythm-badge.negative {
+  color: var(--state-error);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.rhythm-badge.neutral {
+  color: var(--text-muted);
+  background: var(--surface-soft);
+}

@@ -74,7 +74,7 @@ function getDefaultInitialData() {
       volume: 0.8,
       rememberLastPlaylist: true,
       musicOnSessionStart: false,
-        immersiveBackground: false,
+      immersiveBackground: false,
     },
     timerState: {
       mode: 'focus', // 'focus', 'short_break', 'long_break'
@@ -85,6 +85,7 @@ function getDefaultInitialData() {
       isRunning: false,
       lastStartedAt: null,
       expectedEndAt: null,
+      pendingCompletion: false,
     },
     history: [],
     dailyActivity: {},
@@ -180,9 +181,12 @@ export const storageService = {
         if (isRunning && expectedEndAt) {
           const now = Date.now();
           if (now >= expectedEndAt) {
-            // Timer finished while page was closed
+            // Timer deadline passed while tab/browser was closed or asleep.
+            // Mark remainingSeconds as 0 and flag pendingCompletion so TimerContext
+            // can award full focus credit, log the session, and advance to break mode.
             merged.timerState.isRunning = false;
             merged.timerState.remainingSeconds = 0;
+            merged.timerState.pendingCompletion = true;
           } else {
             merged.timerState.remainingSeconds = Math.max(0, Math.ceil((expectedEndAt - now) / 1000));
           }
@@ -239,6 +243,12 @@ export const storageService = {
       if (typeof window !== 'undefined' && window.localStorage) {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(APPEARANCE_CACHE_KEY);
+        localStorage.removeItem('atleratimer_playlists_v1');
+        localStorage.removeItem('atleratimer_last_playlist_v1');
+        localStorage.removeItem('atleratimer_auto_vibe_v1');
+      }
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.removeItem('atleratimer_queue_v1');
       }
       lastWritten = null;
       pendingPayload = null;

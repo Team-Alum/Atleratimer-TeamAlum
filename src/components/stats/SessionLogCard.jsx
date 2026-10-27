@@ -6,7 +6,7 @@ export default function SessionLogCard() {
   const { data, timerState } = useTimerState();
   const { setShowHistoryModal } = useTimerActions();
   const { remainingSeconds } = useTimerCountdown();
-  const { sessionTitle, isRunning } = timerState;
+  const { sessionTitle, isRunning, lastStartedAt, totalSeconds, mode } = timerState;
 
   // Format remaining time for live session
   const mins = Math.floor(remainingSeconds / 60);
@@ -15,6 +15,16 @@ export default function SessionLogCard() {
 
   // Get completed sessions
   const completedHistory = (data.history || []).filter((h) => h.completed);
+
+  // Derive honest session status and start time
+  const isFresh = !isRunning && remainingSeconds >= totalSeconds;
+  const statusLabel = isRunning ? 'In progress' : isFresh ? 'Ready to start' : 'Paused';
+  const statusClass = isRunning ? 'active' : isFresh ? 'ready' : 'paused';
+
+  const startTimeStr = lastStartedAt
+    ? new Date(lastStartedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+    : null;
+  const subMeta = startTimeStr ? `${startTimeStr} · ${statusLabel}` : statusLabel;
 
   return (
     <div className="stat-card">
@@ -31,19 +41,17 @@ export default function SessionLogCard() {
 
       <div className="session-log-list">
         {/* Active Session Entry */}
-        <div className="log-item">
+        <div className={`log-item ${statusClass}`}>
           <div className="log-item-left">
-            <div className="log-icon-box active">
+            <div className={`log-icon-box ${statusClass}`}>
               <Timer size={16} strokeWidth={2.2} />
             </div>
             <div>
-              <div className="log-title">{sessionTitle}</div>
-              <div className="log-sub">
-                09:35 · {isRunning ? 'In progress' : 'In progress'}
-              </div>
+              <div className="log-title">{sessionTitle || (mode === 'focus' ? 'Focus session' : 'Break')}</div>
+              <div className="log-sub">{subMeta}</div>
             </div>
           </div>
-          <div className="log-time-right active tabular-nums">
+          <div className={`log-time-right ${statusClass} tabular-nums`}>
             {liveTimeString}
           </div>
         </div>

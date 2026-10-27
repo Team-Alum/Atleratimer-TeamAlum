@@ -26,8 +26,8 @@ class NotificationService {
     if (Notification.permission === 'granted') {
       try {
         const notif = new Notification(title, {
-          icon: '/favicon.ico',
-          badge: '/favicon.ico',
+          icon: '/favicon.svg',
+          badge: '/favicon.svg',
           silent: false,
           ...options,
         });

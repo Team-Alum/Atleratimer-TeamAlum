@@ -29,10 +29,11 @@ function SessionHistoryModal({ isOpen, onClose }) {
   };
 
   const handleClearHistory = () => {
-    if (window.confirm('Are you sure you want to clear your session history? This action cannot be undone.')) {
+    if (window.confirm('Are you sure you want to clear your session history? This will also reset today’s activity statistics.')) {
       setData((prev) => ({
         ...prev,
         history: [],
+        dailyActivity: {},
       }));
     }
   };

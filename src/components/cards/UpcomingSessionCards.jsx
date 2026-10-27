@@ -99,7 +99,9 @@ function UpcomingSessionCards() {
               {isFinalSession ? 'Long break' : 'Next focus'}
             </div>
             <div className="upcoming-subtitle">
-              {isFinalSession ? 'Reward deep work cycle' : 'Final session in this cycle'}
+              {isFinalSession
+                ? 'Reward deep work cycle'
+                : `Session ${Math.min(cycleIndex + 1, timerSettings.sessionsPerCycle)} of ${timerSettings.sessionsPerCycle}`}
             </div>
           </div>
         </div>

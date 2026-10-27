@@ -33,7 +33,7 @@ function TimerControls() {
         <button
           className="btn-secondary"
           onClick={() => resetTimer()}
-          title="Reset current session (Ctrl+R)"
+          title="Reset current session (Alt+R)"
         >
           <RotateCcw size={16} strokeWidth={2.2} />
           <span>Reset</span>
@@ -119,7 +119,7 @@ function TimerControls() {
         </button>
 
         <div className="shortcut-hint">
-          {isRunning ? 'Space to pause' : 'Space to start'} · Ctrl+R to reset
+          {isRunning ? 'Space to pause' : 'Space to start'} · Alt+R to reset
         </div>
       </div>
     </div>

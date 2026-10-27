@@ -3,7 +3,7 @@ import { useTimerState } from '../../context/useTimer';
 import WeeklyActivityChart from './WeeklyActivityChart';
 
 function WeeklyRhythmCard() {
-  const { rhythmText } = useTimerState();
+  const { rhythmText, rhythmBadge } = useTimerState();
 
   return (
     <div className="stat-card">
@@ -14,7 +14,9 @@ function WeeklyRhythmCard() {
 
       <div className="rhythm-metrics-row">
         <div className="rhythm-hours tabular-nums">{rhythmText}</div>
-        <div className="rhythm-badge">+18% this week</div>
+        {rhythmBadge && (
+          <div className={`rhythm-badge ${rhythmBadge.type}`}>{rhythmBadge.text}</div>
+        )}
       </div>
 
       {/* 7-Day Chart */}

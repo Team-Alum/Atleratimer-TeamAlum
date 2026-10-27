@@ -1,5 +1,5 @@
 // AnimatedTime — configurable digit animation system with distinct modes
-import React, { memo, useEffect, useRef, useState } from 'react';
+import React, { memo, useState } from 'react';
 
 function getAnimationDurations(speed) {
   if (speed === 'subtle') return { droplet: 140, slide: 140, bounce: 160, fade: 120 };
@@ -8,35 +8,17 @@ function getAnimationDurations(speed) {
 }
 
 function TickDigit({ char, mode, duration, reducedMotion }) {
-  const [current, setCurrent] = useState(char);
+  const [prevChar, setPrevChar] = useState(char);
   const [outgoing, setOutgoing] = useState(char);
   const [animKey, setAnimKey] = useState(0);
-  const lastRef = useRef(char);
 
-  useEffect(() => {
-    if (lastRef.current === char) {
-      setCurrent(char);
-      return;
-    }
-    if (reducedMotion || mode === 'normal') {
-      lastRef.current = char;
-      setOutgoing(char);
-      setCurrent(char);
-      setAnimKey((k) => k + 1);
-      return;
-    }
-
-    setOutgoing(lastRef.current);
-    setCurrent(char);
+  if (char !== prevChar) {
+    setPrevChar(char);
+    setOutgoing(prevChar);
     setAnimKey((k) => k + 1);
+  }
 
-    const t = setTimeout(() => {
-      lastRef.current = char;
-    }, duration + 50);
-
-    return () => clearTimeout(t);
-  }, [char, duration, reducedMotion, mode]);
-
+  const current = char;
   const effectiveMode = reducedMotion ? 'normal' : mode;
 
   if (effectiveMode === 'normal') {

@@ -29,12 +29,13 @@ export default function SettingsView() {
   };
 
   const handleClearHistory = () => {
-    if (window.confirm('Clear all session history records? Today’s focus stats and presets will remain.')) {
+    if (window.confirm('Clear all session history records and reset focus stats? Presets and customizations will remain.')) {
       setData((prev) => ({
         ...prev,
         history: [],
+        dailyActivity: {},
       }));
-      alert('Session history cleared.');
+      alert('Session history and activity stats cleared.');
     }
   };
 
@@ -153,7 +154,7 @@ export default function SettingsView() {
         <div className="setting-row">
           <div>
             <div className="setting-label">Clear Session Logs</div>
-            <div className="setting-help">Deletes historical entries while retaining cycle configurations</div>
+            <div className="setting-help">Deletes historical entries and resets focus tracking statistics</div>
           </div>
           <button
             type="button"

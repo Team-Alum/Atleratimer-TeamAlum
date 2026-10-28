@@ -1,5 +1,5 @@
 // Live Visitor Analytics Tracker Service
-// Tracks real visits anonymously and provides admin analytics fetching for teamalumorg@gmail.com
+// Tracks real visits anonymously and provides admin analytics fetching for teamalumorg@gmail.com with password protection
 
 import { parseDeviceName, formatAndroidModel } from './deviceResolver.js';
 
@@ -8,9 +8,17 @@ const SESSION_ID_KEY = 'atlera_sid_v1';
 const LOCAL_ANALYTICS_KEY = 'atlera_local_metrics_v1';
 
 export const ADMIN_EMAIL = 'teamalumorg@gmail.com';
+export const ADMIN_PASSWORD = 'Atlera@2009';
 
 export function isAdminEmail(email) {
   return String(email || '').trim().toLowerCase() === ADMIN_EMAIL;
+}
+
+export function verifyAdmin(email, password) {
+  return (
+    String(email || '').trim().toLowerCase() === ADMIN_EMAIL &&
+    String(password || '').trim() === ADMIN_PASSWORD
+  );
 }
 
 function getOrCreateVisitorId() {
@@ -162,20 +170,43 @@ export const analyticsService = {
     }
   },
 
-  // Fetch live aggregated data (Protected by email)
-  async fetchAnalytics(email) {
+  // Fetch live aggregated data (Protected by email and password)
+  async fetchAnalytics(email, adminKey = ADMIN_PASSWORD) {
     const cleanEmail = String(email || '').trim().toLowerCase();
+    const cleanKey = String(adminKey || '').trim();
+
     if (cleanEmail !== ADMIN_EMAIL) {
-      throw new Error('Access denied. Only authorized admin email can view visitor analytics.');
+      throw new Error('Access denied. Invalid credentials.');
     }
 
-    const res = await fetch(`/api/analytics?email=${encodeURIComponent(cleanEmail)}`);
+    const res = await fetch(`/api/analytics?email=${encodeURIComponent(cleanEmail)}&key=${encodeURIComponent(cleanKey)}`, {
+      headers: {
+        'x-admin-key': cleanKey,
+        'x-admin-email': cleanEmail,
+      },
+    });
     const json = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      throw new Error(json.message || 'Could not load analytics data.');
+      throw new Error(json.message || 'Could not load analytics data. Invalid credentials.');
     }
 
     return json.data;
+  },
+
+  // Reset live analytics (Authorized admin only)
+  async resetAnalytics(email, adminKey = ADMIN_PASSWORD) {
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const cleanKey = String(adminKey || '').trim();
+
+    const res = await fetch(`/api/analytics?action=reset`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-key': cleanKey,
+        'x-admin-email': cleanEmail,
+      },
+    });
+    return res.ok;
   },
 };

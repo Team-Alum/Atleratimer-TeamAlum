@@ -1,12 +1,13 @@
 // Vercel Serverless Function — Live Visitor Analytics Tracker & Reporting
-// Captures live visits and provides authenticated real analytics for teamalumorg@gmail.com
+// Captures live visits and provides authenticated real analytics for teamalumorg@gmail.com with password protection
 
 import fs from 'fs';
 import path from 'path';
 import { parseDeviceName } from '../src/services/deviceResolver.js';
 
 const ADMIN_EMAIL = 'teamalumorg@gmail.com';
-const TMP_FILE = path.join('/tmp', 'atlera_analytics_v1.json');
+const ADMIN_PASSWORD = 'Atlera@2009';
+const TMP_FILE = path.join('/tmp', 'atlera_analytics_v2.json');
 
 // In-memory cache for fast warm-lambda operations
 let memoryStore = {
@@ -89,19 +90,24 @@ async function parseBody(req) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-key, x-admin-email');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
   // 1. POST: Track live visit event
-  if (req.method === 'POST') {
+  if (req.method === 'POST' && req.query?.action !== 'reset') {
     const body = await parseBody(req);
     const ip = getClientIp(req);
     const today = getTodayString();
     const ua = req.headers?.['user-agent'] || '';
+
+    // Ignore synthetic automated test pings if marked or without valid visitorId
+    if (body.test || body.visitorId?.startsWith('live_test_')) {
+      return res.status(200).json({ ok: true, ignored: true });
+    }
 
     const visitorId = String(body.visitorId || ip || 'unknown').slice(0, 80);
     const device = String(body.device || 'desktop').toLowerCase();
@@ -171,17 +177,18 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, views: memoryStore.totalViews, deviceName });
   }
 
-  // 2. GET: Retrieve Live Analytics (Admin email restricted)
+  // 2. GET: Retrieve Live Analytics (Admin email + password restricted)
   if (req.method === 'GET') {
-    const email = String(req.query?.email || '').trim().toLowerCase();
+    const email = String(req.query?.email || req.headers?.['x-admin-email'] || '').trim().toLowerCase();
+    const key = String(req.query?.key || req.headers?.['x-admin-key'] || req.headers?.authorization?.replace(/^Bearer\s+/i, '') || '').trim();
 
-    // STRICT ADMIN EMAIL AUTH CHECK
-    if (email !== ADMIN_EMAIL) {
+    // STRICT ADMIN EMAIL + PASSWORD AUTH CHECK
+    if (email !== ADMIN_EMAIL || key !== ADMIN_PASSWORD) {
       return res.status(403).json({
         ok: false,
         success: false,
         error: 'unauthorized',
-        message: 'Admin access restricted. Enter the authorized email address in settings.',
+        message: 'Admin access restricted. Invalid email or password.',
       });
     }
 
@@ -207,6 +214,30 @@ export default async function handler(req, res) {
       success: true,
       data,
     });
+  }
+
+  // 3. DELETE / Reset: Authorized admin can clear logs
+  if (req.method === 'DELETE' || (req.method === 'POST' && req.query?.action === 'reset')) {
+    const email = String(req.query?.email || req.headers?.['x-admin-email'] || '').trim().toLowerCase();
+    const key = String(req.query?.key || req.headers?.['x-admin-key'] || '').trim();
+
+    if (email !== ADMIN_EMAIL || key !== ADMIN_PASSWORD) {
+      return res.status(403).json({ ok: false, error: 'unauthorized' });
+    }
+
+    memoryStore = {
+      totalViews: 0,
+      uniqueVisitors: new Set(),
+      dailyViews: {},
+      devices: { desktop: 0, mobile: 0, tablet: 0 },
+      deviceModels: {},
+      browsers: {},
+      operatingSystems: {},
+      referrers: {},
+      recentVisits: [],
+    };
+    persistToDisk();
+    return res.status(200).json({ ok: true, message: 'Analytics reset to clean state.' });
   }
 
   return res.status(405).json({ error: 'method_not_allowed' });

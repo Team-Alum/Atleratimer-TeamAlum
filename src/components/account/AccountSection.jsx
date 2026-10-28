@@ -2,19 +2,28 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/useAuth';
 import { useTimerActions } from '../../context/useTimer';
 import { Cloud, LogIn, LogOut, RefreshCw, UserPlus, Mail, CheckCircle2 } from 'lucide-react';
-import { isAdminEmail } from '../../services/analyticsService';
+import { isAdminEmail, ADMIN_PASSWORD } from '../../services/analyticsService';
 import AdminAnalyticsPanel from './AdminAnalyticsPanel';
 
 const USER_EMAIL_KEY = 'atlera_user_email';
+const ADMIN_AUTH_KEY = 'atlera_admin_auth_v2';
 
 export default function AccountSection() {
   const { isConfigured, isSignedIn, user, signUp, signIn, signOut } = useAuth();
   const { pullFromCloud } = useTimerActions();
 
-  // Retrieve stored email from localStorage
+  // Retrieve stored email and admin auth state
   const [savedEmail, setSavedEmail] = useState(() => {
     try {
       return localStorage.getItem(USER_EMAIL_KEY) || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const [adminAuthKey, setAdminAuthKey] = useState(() => {
+    try {
+      return sessionStorage.getItem(ADMIN_AUTH_KEY) || '';
     } catch {
       return '';
     }
@@ -31,23 +40,32 @@ export default function AccountSection() {
   // Active email is either the locally saved email or the Supabase authenticated user's email
   const currentEmail = savedEmail || user?.email || '';
 
-  // If saved email is the designated admin email, render the Live Visitor Analytics Dashboard
-  if (currentEmail && isAdminEmail(currentEmail)) {
+  // If saved email is the designated admin email AND correct password is provided, render the Admin Panel
+  if (currentEmail && isAdminEmail(currentEmail) && adminAuthKey === ADMIN_PASSWORD) {
     const handleDisconnectAdmin = () => {
       try {
         localStorage.removeItem(USER_EMAIL_KEY);
+        sessionStorage.removeItem(ADMIN_AUTH_KEY);
       } catch {
         // Silently handle
       }
       setSavedEmail('');
+      setAdminAuthKey('');
       setEmailInput('');
+      setPassword('');
       setMessage(null);
     };
 
-    return <AdminAnalyticsPanel email={currentEmail} onSignOut={handleDisconnectAdmin} />;
+    return (
+      <AdminAnalyticsPanel
+        email={currentEmail}
+        adminKey={adminAuthKey}
+        onSignOut={handleDisconnectAdmin}
+      />
+    );
   }
 
-  // Handle standard email submission (workspace linking & optional cloud sync)
+  // Handle email & password submission
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
     if (busy) return;
@@ -61,12 +79,20 @@ export default function AccountSection() {
 
     // Check if this is the admin email
     if (isAdminEmail(cleanEmail)) {
+      if (password !== ADMIN_PASSWORD) {
+        setMessage({ type: 'error', text: 'Incorrect password for this account.' });
+        return;
+      }
       try {
         localStorage.setItem(USER_EMAIL_KEY, cleanEmail);
+        sessionStorage.setItem(ADMIN_AUTH_KEY, password);
       } catch {
         // Ignore storage failure
       }
       setSavedEmail(cleanEmail);
+      setAdminAuthKey(password);
+      setPassword('');
+      setMessage(null);
       return;
     }
 
@@ -124,11 +150,14 @@ export default function AccountSection() {
   const handleClearSavedEmail = () => {
     try {
       localStorage.removeItem(USER_EMAIL_KEY);
+      sessionStorage.removeItem(ADMIN_AUTH_KEY);
     } catch {
       // Ignore
     }
     setSavedEmail('');
+    setAdminAuthKey('');
     setEmailInput('');
+    setPassword('');
     setIsEditingEmail(true);
     setMessage({ type: 'info', text: 'Email unlinked from this workspace.' });
   };
@@ -170,7 +199,7 @@ export default function AccountSection() {
         <h2 className="view-card-title" style={{ margin: 0 }}>Account & Workspace</h2>
       </div>
 
-      {currentEmail && !isEditingEmail ? (
+      {currentEmail && !isEditingEmail && (!isAdminEmail(currentEmail) || adminAuthKey === ADMIN_PASSWORD) ? (
         <>
           <p className="view-card-desc">
             Your workspace preferences and focus sessions are linked to <strong>{currentEmail}</strong>.
@@ -256,19 +285,17 @@ export default function AccountSection() {
               </div>
             </div>
 
-            {isConfigured && (
-              <div>
-                <div className="setting-label">Password (optional)</div>
-                <input
-                  type="password"
-                  className="form-input"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Minimum 6 characters for cloud sync"
-                  autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-                />
-              </div>
-            )}
+            <div>
+              <div className="setting-label">Password</div>
+              <input
+                type="password"
+                className="form-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+            </div>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <button
@@ -277,15 +304,17 @@ export default function AccountSection() {
                 disabled={busy}
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}
               >
-                {isConfigured && password ? (
-                  mode === 'signup' ? <UserPlus size={14} /> : <LogIn size={14} />
+                {isConfigured && password && mode === 'signup' ? (
+                  <UserPlus size={14} />
+                ) : isConfigured && password ? (
+                  <LogIn size={14} />
                 ) : (
                   <Mail size={14} />
                 )}
                 <span>
                   {isConfigured && password
                     ? mode === 'signup' ? 'Create Account' : 'Sign In'
-                    : 'Save Email'}
+                    : 'Save & Link'}
                 </span>
               </button>
 

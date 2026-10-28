@@ -2,10 +2,10 @@
 // Displays real live visitor statistics, devices, browsers, and recent activity stream.
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { analyticsService, ADMIN_EMAIL } from '../../services/analyticsService';
+import { analyticsService, ADMIN_EMAIL, ADMIN_PASSWORD } from '../../services/analyticsService';
 import {
   Users, Eye, Calendar, Smartphone, Monitor, Tablet, Globe,
-  RefreshCw, Radio, CheckCircle2, AlertTriangle
+  RefreshCw, Radio, CheckCircle2, AlertTriangle, RotateCcw
 } from 'lucide-react';
 import './admin-analytics.css';
 
@@ -26,17 +26,18 @@ function formatRelativeTime(isoString) {
   }
 }
 
-export default function AdminAnalyticsPanel({ email, onSignOut }) {
+export default function AdminAnalyticsPanel({ email, adminKey = ADMIN_PASSWORD, onSignOut }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [error, setError] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   // Initial fetch on mount / email change
   useEffect(() => {
     let active = true;
-    analyticsService.fetchAnalytics(email)
+    analyticsService.fetchAnalytics(email, adminKey)
       .then((result) => {
         if (active) {
           setData(result);
@@ -51,12 +52,12 @@ export default function AdminAnalyticsPanel({ email, onSignOut }) {
         }
       });
     return () => { active = false; };
-  }, [email]);
+  }, [email, adminKey]);
 
   const handleManualRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const result = await analyticsService.fetchAnalytics(email);
+      const result = await analyticsService.fetchAnalytics(email, adminKey);
       setData(result);
       setError(null);
     } catch (err) {
@@ -64,7 +65,22 @@ export default function AdminAnalyticsPanel({ email, onSignOut }) {
     } finally {
       setRefreshing(false);
     }
-  }, [email]);
+  }, [email, adminKey]);
+
+  const handleResetCounters = async () => {
+    if (!window.confirm('Reset visitor counts and start with a completely fresh slate at 0?')) {
+      return;
+    }
+    setResetting(true);
+    try {
+      await analyticsService.resetAnalytics(email, adminKey);
+      await handleManualRefresh();
+    } catch (err) {
+      alert(err.message || 'Reset failed.');
+    } finally {
+      setResetting(false);
+    }
+  };
 
   // Auto-refresh interval (10 seconds)
   useEffect(() => {
@@ -133,7 +149,7 @@ export default function AdminAnalyticsPanel({ email, onSignOut }) {
           </div>
           <h2 className="atlera-analytics-title">Visitor Analytics & Audience Insights</h2>
           <p className="atlera-analytics-subtitle">
-            Connected as <strong>{ADMIN_EMAIL}</strong> · Updated {formatRelativeTime(lastUpdated)}
+            Authenticated as <strong>{ADMIN_EMAIL}</strong> · Updated {formatRelativeTime(lastUpdated)}
           </p>
         </div>
 
@@ -161,6 +177,19 @@ export default function AdminAnalyticsPanel({ email, onSignOut }) {
             <span>Refresh</span>
           </button>
 
+          {/* Reset Counter Button */}
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={handleResetCounters}
+            disabled={resetting}
+            title="Reset counter to zero clean state"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, opacity: 0.85 }}
+          >
+            <RotateCcw size={13} className={resetting ? 'spin' : ''} />
+            <span>Reset (0)</span>
+          </button>
+
           {/* Sign Out / Exit */}
           {onSignOut && (
             <button
@@ -169,94 +198,91 @@ export default function AdminAnalyticsPanel({ email, onSignOut }) {
               onClick={onSignOut}
               title="Close analytics session"
             >
-              Close
+              Disconnect
             </button>
           )}
         </div>
       </div>
 
-      {/* Primary KPI Summary Cards */}
+      {/* Main KPI Counters Grid */}
       <div className="atlera-kpi-grid">
-        {/* Total Page Views */}
+        {/* Total Views */}
         <div className="atlera-kpi-card">
           <div className="atlera-kpi-top">
-            <span className="atlera-kpi-label">TOTAL VISITS</span>
-            <span className="atlera-kpi-icon"><Eye size={16} /></span>
+            <div className="atlera-kpi-icon">
+              <Eye size={20} />
+            </div>
+            <span className="atlera-kpi-badge teal">Live Metric</span>
           </div>
           <div className="atlera-kpi-value">{totalViews.toLocaleString()}</div>
-          <div className="atlera-kpi-foot">
-            <span className="atlera-kpi-badge">+{todayViews} today</span>
-            <span>Recorded page views</span>
-          </div>
+          <div className="atlera-kpi-label">Total Visits Recorded</div>
+          <div className="atlera-kpi-foot">All page transitions & loads</div>
         </div>
 
         {/* Unique Visitors */}
         <div className="atlera-kpi-card">
           <div className="atlera-kpi-top">
-            <span className="atlera-kpi-label">UNIQUE VISITORS</span>
-            <span className="atlera-kpi-icon"><Users size={16} /></span>
+            <div className="atlera-kpi-icon">
+              <Users size={20} />
+            </div>
+            <span className="atlera-kpi-badge teal">Unique Devices</span>
           </div>
           <div className="atlera-kpi-value">{uniqueVisitorsCount.toLocaleString()}</div>
-          <div className="atlera-kpi-foot">
-            <span className="atlera-kpi-badge teal">Distinct devices</span>
-            <span>Unique client IDs</span>
-          </div>
+          <div className="atlera-kpi-label">Unique Visitors</div>
+          <div className="atlera-kpi-foot">Distinct client fingerprints</div>
         </div>
 
         {/* Today's Views */}
         <div className="atlera-kpi-card">
           <div className="atlera-kpi-top">
-            <span className="atlera-kpi-label">TODAY'S VISITS</span>
-            <span className="atlera-kpi-icon"><Calendar size={16} /></span>
+            <div className="atlera-kpi-icon">
+              <Calendar size={20} />
+            </div>
+            <span className="atlera-kpi-badge indigo">Today</span>
           </div>
           <div className="atlera-kpi-value">{todayViews.toLocaleString()}</div>
-          <div className="atlera-kpi-foot">
-            <span className="atlera-kpi-badge indigo">Live 24h</span>
-            <span>Active study sessions</span>
-          </div>
+          <div className="atlera-kpi-label">Visits Today</div>
+          <div className="atlera-kpi-foot">UTC midnight to current moment</div>
         </div>
 
         {/* Platform Ratio */}
         <div className="atlera-kpi-card">
           <div className="atlera-kpi-top">
-            <span className="atlera-kpi-label">PRIMARY PLATFORM</span>
-            <span className="atlera-kpi-icon"><Monitor size={16} /></span>
+            <div className="atlera-kpi-icon">
+              <Smartphone size={20} />
+            </div>
+            <span className="atlera-kpi-badge">Platform Ratio</span>
           </div>
-          <div className="atlera-kpi-value">
-            {desktopPct >= mobilePct ? `${desktopPct}% Desktop` : `${mobilePct}% Mobile`}
-          </div>
-          <div className="atlera-kpi-foot">
-            <span>{mobilePct}% Mobile · {tabletPct}% Tablet</span>
-          </div>
+          <div className="atlera-kpi-value">{mobilePct}% / {desktopPct}%</div>
+          <div className="atlera-kpi-label">Mobile vs Desktop</div>
+          <div className="atlera-kpi-foot">Based on real client User-Agents</div>
         </div>
       </div>
 
-      {/* Traffic Over Time & Device Breakdown Row */}
+      {/* Traffic Trend & Device Breakdown Row */}
       <div className="atlera-analytics-row">
-        {/* Daily Visits Chart */}
+        {/* Recent Daily Visits Timeline */}
         <div className="view-card atlera-chart-card">
           <div className="atlera-card-head">
-            <h3>Visits Over Time (Recent Days)</h3>
-            <span className="atlera-head-badge">Daily Volume</span>
+            <div>
+              <h3>Daily Visits (Recent 7 Days)</h3>
+              <p className="atlera-card-desc">Volume of focus sessions launched per day</p>
+            </div>
+            <span className="atlera-head-badge">Timeline</span>
           </div>
 
           {dailyEntries.length === 0 ? (
-            <p className="atlera-empty-chart">Traffic recorded today will begin populating the daily graph.</p>
+            <div className="atlera-empty-chart">No daily view activity recorded yet.</div>
           ) : (
             <div className="atlera-bar-chart">
-              {dailyEntries.map(([dateStr, count]) => {
-                const heightPct = Math.max(12, Math.round((count / maxDayViews) * 100));
-                const formattedDate = dateStr.slice(5); // e.g. "10-28"
-
+              {dailyEntries.map(([dayDate, dayCount]) => {
+                const heightPct = Math.max(Math.round((dayCount / maxDayViews) * 100), 10);
+                const formattedDate = dayDate.slice(5); // MM-DD
                 return (
-                  <div key={dateStr} className="atlera-chart-col">
-                    <div className="atlera-col-value">{count}</div>
+                  <div key={dayDate} className="atlera-chart-col" title={`${dayDate}: ${dayCount} visits`}>
+                    <div className="atlera-col-value">{dayCount}</div>
                     <div className="atlera-col-track">
-                      <div
-                        className="atlera-col-bar"
-                        style={{ height: `${heightPct}%` }}
-                        title={`${dateStr}: ${count} visits`}
-                      />
+                      <div className="atlera-col-bar" style={{ height: `${heightPct}%` }} />
                     </div>
                     <div className="atlera-col-label">{formattedDate}</div>
                   </div>

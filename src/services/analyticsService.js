@@ -1,6 +1,8 @@
 // Live Visitor Analytics Tracker Service
 // Tracks real visits anonymously and provides admin analytics fetching for teamalumorg@gmail.com
 
+import { parseDeviceName, formatAndroidModel } from './deviceResolver.js';
+
 const VISITOR_ID_KEY = 'atlera_vid_v1';
 const SESSION_ID_KEY = 'atlera_sid_v1';
 const LOCAL_ANALYTICS_KEY = 'atlera_local_metrics_v1';
@@ -45,6 +47,33 @@ export function detectDevice() {
   return 'Desktop';
 }
 
+export async function detectDeviceName() {
+  if (typeof window === 'undefined') return 'Desktop';
+
+  // 1. Check for Modern User-Agent Client Hints (Android Chrome, Edge, etc.)
+  if (typeof navigator !== 'undefined' && navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
+    try {
+      const hints = await navigator.userAgentData.getHighEntropyValues(['model']);
+      if (hints?.model && typeof hints.model === 'string' && hints.model.trim()) {
+        const cleaned = formatAndroidModel(hints.model);
+        if (cleaned && cleaned !== 'K' && cleaned !== 'Mobile') {
+          return cleaned;
+        }
+      }
+    } catch {
+      // Fallback to UA string parser
+    }
+  }
+
+  // 2. Parse User-Agent with screen dimensions and devicePixelRatio
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+  const screenW = typeof window !== 'undefined' && window.screen ? window.screen.width || 0 : 0;
+  const screenH = typeof window !== 'undefined' && window.screen ? window.screen.height || 0 : 0;
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+
+  return parseDeviceName(ua, '', screenW, screenH, dpr);
+}
+
 export function detectBrowser() {
   if (typeof window === 'undefined') return 'Chrome';
   const ua = navigator.userAgent;
@@ -69,17 +98,28 @@ export function detectOS() {
 
 export const analyticsService = {
   // Record a real live visit
-  recordVisit(path = '/') {
+  async recordVisit(path = '/') {
     if (typeof window === 'undefined') return;
+
+    let deviceName = 'Desktop';
+    try {
+      deviceName = await detectDeviceName();
+    } catch {
+      deviceName = detectDevice();
+    }
 
     const payload = {
       visitorId: getOrCreateVisitorId(),
       sessionId: getOrCreateSessionId(),
       path: path || window.location.pathname || '/',
       device: detectDevice(),
+      deviceName,
       browser: detectBrowser(),
       os: detectOS(),
       screen: `${window.screen?.width || 0}x${window.screen?.height || 0}`,
+      screenW: window.screen?.width || 0,
+      screenH: window.screen?.height || 0,
+      dpr: window.devicePixelRatio || 1,
       referrer: document.referrer || '',
       timestamp: new Date().toISOString(),
     };
@@ -110,6 +150,7 @@ export const analyticsService = {
         timestamp: payload.timestamp,
         path: payload.path,
         device: payload.device,
+        deviceName: payload.deviceName,
         browser: payload.browser,
         os: payload.os,
         referrer: payload.referrer || 'Direct',

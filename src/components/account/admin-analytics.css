@@ -541,6 +541,33 @@
   text-align: center;
 }
 
+.atlera-device-name-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.atlera-device-name-val {
+  color: #f8fafc;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.atlera-model-pill {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: rgba(45, 212, 191, 0.08);
+  border: 1px solid rgba(45, 212, 191, 0.2);
+  color: #2dd4bf;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .spin {
   animation: atlera-spin 1s linear infinite;
 }

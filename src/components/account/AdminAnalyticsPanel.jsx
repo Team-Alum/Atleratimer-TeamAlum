@@ -103,6 +103,7 @@ export default function AdminAnalyticsPanel({ email, onSignOut }) {
     todayViews = 0,
     dailyViews = {},
     devices = { desktop: 0, mobile: 0, tablet: 0 },
+    deviceModels = {},
     browsers = {},
     operatingSystems = {},
     referrers = {},
@@ -320,6 +321,20 @@ export default function AdminAnalyticsPanel({ email, onSignOut }) {
               ))
             )}
           </div>
+
+          {/* Specific Device & Mobile Models */}
+          {Object.keys(deviceModels).length > 0 && (
+            <div className="atlera-pill-group" style={{ marginTop: 10 }}>
+              <span className="atlera-pill-label">Device Models:</span>
+              {Object.entries(deviceModels).map(([modelName, modelCount]) => (
+                <span key={modelName} className="atlera-model-pill">
+                  <Smartphone size={11} />
+                  <span>{modelName}</span>
+                  <strong>{modelCount}</strong>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -391,7 +406,7 @@ export default function AdminAnalyticsPanel({ email, onSignOut }) {
               <thead>
                 <tr>
                   <th>Time</th>
-                  <th>Device / OS</th>
+                  <th>Device Name</th>
                   <th>Browser</th>
                   <th>View / Path</th>
                   <th>Referrer</th>
@@ -406,9 +421,15 @@ export default function AdminAnalyticsPanel({ email, onSignOut }) {
                       {formatRelativeTime(v.timestamp)}
                     </td>
                     <td>
-                      <span className="atlera-device-tag">
-                        {v.device === 'Mobile' ? <Smartphone size={13} /> : v.device === 'Tablet' ? <Tablet size={13} /> : <Monitor size={13} />}
-                        {v.device} · {v.os}
+                      <span className="atlera-device-name-tag">
+                        {v.device === 'Mobile' ? (
+                          <Smartphone size={13} style={{ color: 'var(--atlera-accent-teal, #2dd4bf)', flexShrink: 0 }} />
+                        ) : v.device === 'Tablet' ? (
+                          <Tablet size={13} style={{ color: 'var(--atlera-accent-lavender, #a78bfa)', flexShrink: 0 }} />
+                        ) : (
+                          <Monitor size={13} style={{ color: 'var(--atlera-accent-indigo, #818cf8)', flexShrink: 0 }} />
+                        )}
+                        <span className="atlera-device-name-val">{v.deviceName || v.device}</span>
                       </span>
                     </td>
                     <td>{v.browser}</td>

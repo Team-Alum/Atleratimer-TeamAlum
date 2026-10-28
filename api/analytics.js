@@ -3,6 +3,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { parseDeviceName } from '../src/services/deviceResolver.js';
 
 const ADMIN_EMAIL = 'teamalumorg@gmail.com';
 const TMP_FILE = path.join('/tmp', 'atlera_analytics_v1.json');
@@ -13,6 +14,7 @@ let memoryStore = {
   uniqueVisitors: new Set(),
   dailyViews: {},
   devices: { desktop: 0, mobile: 0, tablet: 0 },
+  deviceModels: {},
   browsers: {},
   operatingSystems: {},
   referrers: {},
@@ -28,6 +30,7 @@ try {
     memoryStore.uniqueVisitors = new Set(parsed.uniqueVisitors || []);
     memoryStore.dailyViews = parsed.dailyViews || {};
     memoryStore.devices = parsed.devices || { desktop: 0, mobile: 0, tablet: 0 };
+    memoryStore.deviceModels = parsed.deviceModels || {};
     memoryStore.browsers = parsed.browsers || {};
     memoryStore.operatingSystems = parsed.operatingSystems || {};
     memoryStore.referrers = parsed.referrers || {};
@@ -49,26 +52,33 @@ function persistToDisk() {
   }
 }
 
-function getClientIp(req) {
-  const fwd = req.headers?.['x-forwarded-for'];
-  const first = Array.isArray(fwd) ? fwd[0] : String(fwd || '');
-  return first.split(',')[0].trim() || req.socket?.remoteAddress || '127.0.0.1';
-}
-
 function getTodayString() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function parseBody(req) {
-  return new Promise((resolve) => {
-    if (req.body && typeof req.body === 'object') {
-      return resolve(req.body);
+function getClientIp(req) {
+  const forwarded = req.headers?.['x-forwarded-for'];
+  if (forwarded) {
+    return String(forwarded).split(',')[0].trim();
+  }
+  return req.headers?.['x-real-ip'] || req.socket?.remoteAddress || '127.0.0.1';
+}
+
+async function parseBody(req) {
+  if (req.body && typeof req.body === 'object') return req.body;
+  if (typeof req.body === 'string') {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
     }
-    let body = '';
-    req.on('data', (chunk) => { body += chunk; });
+  }
+  return new Promise((resolve) => {
+    let raw = '';
+    req.on('data', (chunk) => { raw += chunk; });
     req.on('end', () => {
       try {
-        resolve(body ? JSON.parse(body) : {});
+        resolve(raw ? JSON.parse(raw) : {});
       } catch {
         resolve({});
       }
@@ -91,9 +101,13 @@ export default async function handler(req, res) {
     const body = await parseBody(req);
     const ip = getClientIp(req);
     const today = getTodayString();
+    const ua = req.headers?.['user-agent'] || '';
 
     const visitorId = String(body.visitorId || ip || 'unknown').slice(0, 80);
     const device = String(body.device || 'desktop').toLowerCase();
+    const rawDeviceName = body.deviceName || parseDeviceName(ua, body.clientModel, body.screenW, body.screenH, body.dpr);
+    const deviceName = String(rawDeviceName || (device.includes('mobile') ? 'Mobile' : 'Desktop')).slice(0, 60);
+
     const browser = String(body.browser || 'Chrome').slice(0, 40);
     const os = String(body.os || 'Windows').slice(0, 40);
     const pagePath = String(body.path || '/').slice(0, 80);
@@ -117,10 +131,13 @@ export default async function handler(req, res) {
     memoryStore.uniqueVisitors.add(visitorId);
     memoryStore.dailyViews[today] = (memoryStore.dailyViews[today] || 0) + 1;
 
-    // Devices
+    // Devices & Models
     if (device.includes('mobile')) memoryStore.devices.mobile = (memoryStore.devices.mobile || 0) + 1;
     else if (device.includes('tablet')) memoryStore.devices.tablet = (memoryStore.devices.tablet || 0) + 1;
     else memoryStore.devices.desktop = (memoryStore.devices.desktop || 0) + 1;
+
+    if (!memoryStore.deviceModels) memoryStore.deviceModels = {};
+    memoryStore.deviceModels[deviceName] = (memoryStore.deviceModels[deviceName] || 0) + 1;
 
     // Browsers
     memoryStore.browsers[browser] = (memoryStore.browsers[browser] || 0) + 1;
@@ -137,6 +154,7 @@ export default async function handler(req, res) {
       timestamp: new Date().toISOString(),
       path: pagePath,
       device: device.includes('mobile') ? 'Mobile' : device.includes('tablet') ? 'Tablet' : 'Desktop',
+      deviceName,
       browser,
       os,
       referrer,
@@ -150,7 +168,7 @@ export default async function handler(req, res) {
 
     persistToDisk();
 
-    return res.status(200).json({ ok: true, views: memoryStore.totalViews });
+    return res.status(200).json({ ok: true, views: memoryStore.totalViews, deviceName });
   }
 
   // 2. GET: Retrieve Live Analytics (Admin email restricted)
@@ -175,6 +193,7 @@ export default async function handler(req, res) {
       todayViews: memoryStore.dailyViews[today] || 0,
       dailyViews: memoryStore.dailyViews,
       devices: memoryStore.devices,
+      deviceModels: memoryStore.deviceModels || {},
       browsers: memoryStore.browsers,
       operatingSystems: memoryStore.operatingSystems,
       referrers: memoryStore.referrers,

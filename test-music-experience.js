@@ -26,6 +26,72 @@ function assert(condition, message) {
 }
 
 async function runTests() {
+  process.env.YOUTUBE_API_KEY = 'test_key_for_testing';
+  globalThis.fetch = async (url) => {
+    const urlStr = String(url);
+    if (urlStr.includes('type=video')) {
+      return {
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              id: { videoId: 'jfKfPfyJRdk' },
+              snippet: { title: 'Lofi Hip Hop Radio - Beats to Relax/Study to', channelTitle: 'Lofi Girl', thumbnails: { medium: { url: 'https://i.ytimg.com/vi/jfKfPfyJRdk/mqdefault.jpg' } } }
+            }
+          ]
+        })
+      };
+    }
+    if (urlStr.includes('type=playlist')) {
+      return {
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              id: { playlistId: 'PLOzDu-MXXLliO9fBNZOQTBDddoA3FzZUo' },
+              snippet: { title: 'Deep Focus Study Music', channelTitle: 'Lofi Girl', thumbnails: { medium: { url: 'https://i.ytimg.com/vi/test/mqdefault.jpg' } } }
+            }
+          ]
+        })
+      };
+    }
+    if (urlStr.includes('playlistItems')) {
+      return {
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              snippet: {
+                resourceId: { videoId: 'track_1' },
+                title: 'Calm Piano Study',
+                videoOwnerChannelTitle: 'Relaxation',
+                channelTitle: 'Relaxation',
+                thumbnails: { medium: { url: 'https://i.ytimg.com/vi/test/mqdefault.jpg' } }
+              }
+            }
+          ]
+        })
+      };
+    }
+    if (urlStr.includes('playlists?part=snippet')) {
+      return {
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              snippet: {
+                title: 'Curated Focus Playlist',
+                channelTitle: 'Lofi Girl',
+                thumbnails: { medium: { url: 'https://i.ytimg.com/vi/test/mqdefault.jpg' } }
+              }
+            }
+          ]
+        })
+      };
+    }
+    return { ok: true, json: async () => ({ items: [] }) };
+  };
+
   console.log('\n======================================================');
   console.log('1. TESTING YOUTUBE API SEARCH PROXY & PUBLIC PLAYLISTS');
   console.log('======================================================');

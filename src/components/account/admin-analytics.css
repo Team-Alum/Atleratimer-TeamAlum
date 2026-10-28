@@ -1,0 +1,551 @@
+/* ==========================================================================
+   AT LERA — LIVE VISITOR ANALYTICS & ADMIN PANEL STYLES
+   Translucent Claymorphism • Telemetry KPI Metrics • Live Activity Stream
+   ========================================================================== */
+
+.atlera-analytics-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  animation: atlera-fade-in 0.3s ease forwards;
+}
+
+@keyframes atlera-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Header */
+.atlera-analytics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.atlera-analytics-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.atlera-live-icon {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(45, 212, 191, 0.12);
+  border: 1px solid rgba(45, 212, 191, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2dd4bf;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 4px 12px rgba(45, 212, 191, 0.15);
+}
+
+.atlera-live-pulse {
+  position: absolute;
+  inset: -3px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(45, 212, 191, 0.45);
+  animation: atlera-pulse-wave 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes atlera-pulse-wave {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  70% { transform: scale(1.15); opacity: 0; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+.atlera-analytics-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: -0.01em;
+}
+
+.atlera-head-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.atlera-head-badge.teal {
+  background: rgba(45, 212, 191, 0.15);
+  color: #2dd4bf;
+  border: 1px solid rgba(45, 212, 191, 0.28);
+}
+
+.atlera-analytics-subtitle {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 3px 0 0 0;
+}
+
+.atlera-analytics-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.atlera-toggle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 13px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.atlera-toggle-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+}
+
+.atlera-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2dd4bf;
+  box-shadow: 0 0 8px #2dd4bf;
+}
+
+.atlera-refresh-btn,
+.atlera-exit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.atlera-refresh-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+}
+
+.atlera-exit-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+/* KPI Cards */
+.atlera-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.atlera-kpi-card {
+  background: rgba(18, 24, 38, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 
+    inset 0 1px 1px rgba(255, 255, 255, 0.15),
+    0 10px 24px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.atlera-kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.atlera-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.atlera-kpi-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.atlera-kpi-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+}
+
+.atlera-kpi-badge.teal {
+  background: rgba(45, 212, 191, 0.12);
+  color: #2dd4bf;
+  border: 1px solid rgba(45, 212, 191, 0.25);
+}
+
+.atlera-kpi-badge.indigo {
+  background: rgba(99, 102, 241, 0.12);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.atlera-kpi-value {
+  font-size: 29px;
+  font-weight: 800;
+  color: #f8fafc;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.atlera-kpi-label {
+  font-size: 12.5px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.atlera-kpi-foot {
+  font-size: 11.5px;
+  color: #64748b;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Rows & Cards */
+.atlera-analytics-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .atlera-analytics-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.atlera-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.atlera-card-desc {
+  font-size: 12px;
+  color: #64748b;
+  margin: 3px 0 0 0;
+}
+
+.atlera-pill-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.atlera-stat-pill {
+  font-size: 11.5px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+/* Bar Chart */
+.atlera-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 180px;
+  padding: 16px 8px 4px 8px;
+  overflow-x: auto;
+}
+
+.atlera-chart-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  min-width: 32px;
+}
+
+.atlera-col-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+.atlera-col-track {
+  width: 100%;
+  max-width: 28px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.atlera-col-bar {
+  width: 100%;
+  background: linear-gradient(180deg, #2dd4bf 0%, #0d9488 100%);
+  border-radius: 5px 5px 0 0;
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.3);
+  transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.atlera-col-label {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 6px;
+  white-space: nowrap;
+}
+
+/* Devices Breakdown */
+.atlera-device-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.atlera-device-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.atlera-device-tag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.atlera-device-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.atlera-device-num {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.atlera-prog-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.atlera-prog-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.atlera-prog-fill.teal {
+  background: linear-gradient(90deg, #2dd4bf, #06b6d4);
+  box-shadow: 0 0 8px rgba(45, 212, 191, 0.4);
+}
+
+.atlera-prog-fill.indigo {
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+}
+
+.atlera-prog-fill.lavender {
+  background: linear-gradient(90deg, #a78bfa, #c084fc);
+  box-shadow: 0 0 8px rgba(167, 139, 250, 0.4);
+}
+
+/* Lists */
+.atlera-list-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.atlera-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  font-size: 12.5px;
+  transition: background 0.15s ease;
+}
+
+.atlera-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.atlera-list-item-title {
+  color: #cbd5e1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240px;
+}
+
+.atlera-list-item-count {
+  color: #2dd4bf;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Stream Table */
+.atlera-stream-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(14, 20, 32, 0.4);
+}
+
+.atlera-stream-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  text-align: left;
+}
+
+.atlera-stream-table th {
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.atlera-stream-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  white-space: nowrap;
+}
+
+.atlera-stream-table tr:hover td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.atlera-stream-time {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-variant-numeric: tabular-nums;
+  color: #94a3b8;
+}
+
+.atlera-stream-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2dd4bf;
+  box-shadow: 0 0 6px #2dd4bf;
+}
+
+.atlera-stream-path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.atlera-location-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 3px 8px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.atlera-stream-ref {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.atlera-empty-chart,
+.atlera-empty-text {
+  color: #64748b;
+  font-size: 12.5px;
+  text-align: center;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.atlera-empty-inline {
+  color: #64748b;
+  font-size: 12px;
+  padding: 12px;
+  text-align: center;
+}
+
+.spin {
+  animation: atlera-spin 1s linear infinite;
+}
+
+@keyframes atlera-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

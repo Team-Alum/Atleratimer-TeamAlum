@@ -15,9 +15,12 @@ export default defineConfig(({ mode }) => {
         name: 'local-api-proxy',
         configureServer(server) {
           server.middlewares.use(async (req, res, next) => {
-            if (req.url && req.url.startsWith('/api/youtube-search')) {
+            if (req.url && (req.url.startsWith('/api/youtube-search') || req.url.startsWith('/api/analytics'))) {
               try {
-                const { default: handler } = await server.ssrLoadModule('/api/youtube-search.js')
+                const apiModule = req.url.startsWith('/api/analytics')
+                  ? '/api/analytics.js'
+                  : '/api/youtube-search.js'
+                const { default: handler } = await server.ssrLoadModule(apiModule)
                 const parsedUrl = new URL(req.url, 'http://localhost')
                 req.query = Object.fromEntries(parsedUrl.searchParams.entries())
 
@@ -33,6 +36,10 @@ export default defineConfig(({ mode }) => {
                   json(data) {
                     res.setHeader('Content-Type', 'application/json')
                     res.end(JSON.stringify(data))
+                    return this
+                  },
+                  end() {
+                    res.end()
                     return this
                   },
                 }

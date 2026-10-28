@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useTimerState, useTimerActions } from '../../context/useTimer';
 import Sidebar from './Sidebar';
 import DashboardHeader from './DashboardHeader';
@@ -12,11 +12,17 @@ import AmbientBackground from '../../ambient/AmbientBackground';
 import ImmersiveBackground from '../../music/ImmersiveBackground';
 import MusicHUD from '../../music/MusicHUD';
 import ExpandedMusicHome from '../../music/ExpandedMusicHome';
+import { analyticsService } from '../../services/analyticsService';
 
 export default function AppShell() {
   const { activeView, showHistoryModal, data, theme } = useTimerState();
   const { setShowHistoryModal } = useTimerActions();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Record real visitor telemetry on mount and view switch (silent, anonymous)
+  useEffect(() => {
+    analyticsService.recordVisit(activeView ? `/${activeView}` : '/');
+  }, [activeView]);
 
   // Stable callbacks — the children are memoised, so a new function identity
   // on every render would defeat the memoisation.

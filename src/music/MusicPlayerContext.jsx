@@ -11,14 +11,17 @@ import {
 import { useTimerState } from '../context/useTimer';
 import { loadYouTubeApi, describeYtError } from './youtubeIframe';
 import {
-  buildVibeQuery,
-  nextVibeState,
-  trackMatchesLanguage,
-} from './vibe';
+  findNextAutoplayTrack,
+  CURATED_FOCUS_TRACKS,
+} from './autoplayEngine';
+
 
 const QUEUE_SESSION_KEY = 'atleratimer_queue_v1';
 const LAST_PLAYLIST_KEY = 'atleratimer_last_playlist_v1';
 const AUTO_VIBE_KEY = 'atleratimer_auto_vibe_v1';
+const AUTOPLAY_KEY = 'atleratimer_autoplay_v1';
+const MUSIC_UI_STATE_KEY = 'atleratimer_music_ui_state_v1';
+const HISTORY_KEY = 'atleratimer_history_v1';
 const PROGRESS_INTERVAL_MS = 900;
 
 function readAutoVibePref() {
@@ -28,6 +31,44 @@ function readAutoVibePref() {
   } catch {
     return true;
   }
+}
+
+function readAutoplayPref() {
+  try {
+    const raw = localStorage.getItem(AUTOPLAY_KEY);
+    return raw == null ? true : raw === '1';
+  } catch {
+    return true;
+  }
+}
+
+function readMusicUiStatePref() {
+  try {
+    const raw = localStorage.getItem(MUSIC_UI_STATE_KEY);
+    if (raw === 'compact' || raw === 'expanded' || raw === 'hidden') return raw;
+    return 'compact';
+  } catch {
+    return 'compact';
+  }
+}
+
+function readHistory() {
+  try {
+    const raw = sessionStorage.getItem(HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function readSessionQueue() {
+  try {
+    const raw = sessionStorage.getItem(QUEUE_SESSION_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed && Array.isArray(parsed.queue) && parsed.queue.length) return parsed;
+  } catch { /* ignore */ }
+  return null;
 }
 
 const INITIAL_STATE = {
@@ -42,22 +83,21 @@ const INITIAL_STATE = {
   repeat: 'off', // off | one | all
   shuffle: false,
   error: null, // { message }
-  unavailable: {}, // videoId -> true, e.g. embedding disabled
-  playerVisible: false, // the small YouTube panel (kept visible while a track is loaded)
-  vibe: null, // { query, label, language, pageToken, variant, pages, exhausted }
-  autoVibe: true, // keep the same vibe/language playing after the queue ends
+  unavailable: {}, // videoId -> true
+  playerVisible: false,
+  musicUiState: 'compact', // 'compact' | 'expanded' | 'hidden'
+  autoplay: true, // queue-first intelligent autoplay
+  activeCategory: 'deep-focus',
+  activePlaylistId: null,
+  activePlaylistTitle: null,
+  activePlaylistTracks: null,
+  history: [],
+  autoplayReason: null,
+  vibe: null,
+  autoVibe: true,
   vibeLoading: false,
-  vibeNote: '', // subtle inline note when a vibe can't be topped up
+  vibeNote: '',
 };
-
-function readSessionQueue() {
-  try {
-    const raw = sessionStorage.getItem(QUEUE_SESSION_KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-    if (parsed && Array.isArray(parsed.queue) && parsed.queue.length) return parsed;
-  } catch { /* ignore */ }
-  return null;
-}
 
 export function MusicProvider({ children }) {
   const timerState = useTimerState();
@@ -68,30 +108,34 @@ export function MusicProvider({ children }) {
   const [state, setState] = useState(() => {
     const restored = readSessionQueue();
     const index = restored ? Math.min(restored.index ?? 0, restored.queue.length - 1) : -1;
+    const defaultTrack = restored?.queue?.[index] || CURATED_FOCUS_TRACKS[0];
+    const defaultQueue = restored?.queue || [CURATED_FOCUS_TRACKS[0], CURATED_FOCUS_TRACKS[1], CURATED_FOCUS_TRACKS[2]];
+
     return {
       ...INITIAL_STATE,
-      queue: restored?.queue || [],
-      index,
-      track: restored?.queue?.[index] || null,
+      queue: defaultQueue,
+      index: restored ? index : 0,
+      track: defaultTrack,
+      musicUiState: readMusicUiStatePref(),
+      autoplay: readAutoplayPref(),
+      autoVibe: readAutoVibePref(),
+      history: readHistory(),
       vibe: restored?.vibe?.query
         ? { ...restored.vibe, pageToken: null, variant: 0, pages: 0, exhausted: false }
         : null,
-      autoVibe: readAutoVibePref(),
     };
   });
 
   const playerRef = useRef(null);      // YT.Player instance
-  const playerReadyRef = useRef(null); // Promise<YT.Player> resolved only after onReady
+  const playerReadyRef = useRef(null); // Promise<YT.Player> resolved after onReady
   const creatingRef = useRef(false);   // guards double creation
-  const stateRef = useRef(state);      // always-fresh mirror for event handlers
+  const stateRef = useRef(state);      // always-fresh mirror for handlers
   const pollRef = useRef(null);
-  const interactedRef = useRef(false); // any user gesture seen (autoplay policy)
-  const vibeFetchRef = useRef(false);  // one vibe top-up request at a time
-  const vibeFetchKeyRef = useRef('');  // avoid refetching the same page on pause/resume
+  const interactedRef = useRef(false); // user gesture flag
+  const vibeFetchKeyRef = useRef('');
+  const transitionLockRef = useRef(false);
+  const lastTransitionTimeRef = useRef(0);
 
-  // Keep the mirror in step with the state. The YouTube callbacks read it
-  // from outside React's render cycle, so it is updated after commit rather
-  // than during render — a ref must never be mutated while rendering.
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
@@ -129,7 +173,7 @@ export function MusicProvider({ children }) {
             ? prev
             : { currentTime, duration }
         );
-      } catch { /* player in transition */ }
+      } catch { /* player transitioning */ }
     }, PROGRESS_INTERVAL_MS);
   }, [set]);
 
@@ -140,7 +184,7 @@ export function MusicProvider({ children }) {
     }
   }, []);
 
-  // ---- Queue persistence (same-session resume, never autoplays) -----------
+  // ---- Queue persistence --------------------------------------------------
   useEffect(() => {
     try {
       if (state.queue.length) {
@@ -152,132 +196,128 @@ export function MusicProvider({ children }) {
       } else {
         sessionStorage.removeItem(QUEUE_SESSION_KEY);
       }
-    } catch { /* storage unavailable */ }
+    } catch { /* storage full / blocked */ }
   }, [state.queue, state.index, state.vibe]);
 
-  // ---- Same-vibe autoplay -------------------------------------------------
-  // Fetch one more page of the current vibe. Returns the fresh list plus the
-  // cursor; callers decide when to append and play, so ENDED can start the
-  // first new track without waiting for React to commit the queue update.
-  const requestVibeTracks = useCallback(async (vibeOverride) => {
-    const { autoVibe } = stateRef.current;
-    const vibe = vibeOverride || stateRef.current.vibe;
-    if (!autoVibe || !vibe?.query || vibe.exhausted) return null;
-    if (vibeFetchRef.current) return null;
-    vibeFetchRef.current = true;
-    set({ vibeLoading: true });
-    try {
-      const params = new URLSearchParams({ q: buildVibeQuery(vibe) });
-      if (vibe.pageToken) params.set('pageToken', vibe.pageToken);
-      const res = await fetch(`/api/youtube-search?${params.toString()}`);
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.message || 'Vibe search failed.');
-      const current = stateRef.current;
-      const seen = new Set(current.queue.map((t) => t.videoId));
-      const fresh = (Array.isArray(body.results) ? body.results : [])
-        .filter((r) => r?.videoId && !seen.has(r.videoId) && !current.unavailable[r.videoId])
-        .map((r) => ({ ...r, id: r.videoId }))
-        .filter((r) => trackMatchesLanguage(r, vibe.language));
-      return { fresh, nextPageToken: body.nextPageToken || null, vibeQuery: vibe.query };
-    } catch {
-      return null;
-    } finally {
-      vibeFetchRef.current = false;
-      set({ vibeLoading: false });
+  // ---- Queue continuation (Guaranteed Single Transition Guard) ------------
+  const advance = useCallback((auto) => {
+    const now = Date.now();
+    // Guard against duplicate transitions when YouTube fires state 0 multiple times
+    if (transitionLockRef.current || (now - lastTransitionTimeRef.current < 900)) {
+      return;
     }
-  }, [set]);
+    transitionLockRef.current = true;
+    lastTransitionTimeRef.current = now;
+    setTimeout(() => {
+      transitionLockRef.current = false;
+    }, 900);
 
-  // Apply a fetch result. `nextVibe` is the pre-computed cursor (see
-  // nextVibeState) so a caller can continue before React commits the state.
-  const applyVibeResult = useCallback((result, nextVibe, { playFirst = false } = {}) => {
-    if (!result) return false;
-    const first = result.fresh?.[0] || null;
-    set((prev) => {
-      // Ignore a response that belongs to a vibe the listener already left.
-      if (!prev.vibe) return prev;
-      if (result.vibeQuery && prev.vibe.query !== result.vibeQuery) return prev;
-      const seen = new Set(prev.queue.map((t) => t.videoId));
-      const fresh = (result.fresh || []).filter((t) => !seen.has(t.videoId));
-      const vibe = nextVibe || nextVibeState(prev.vibe, result);
-      const exhausted = Boolean(vibe?.exhausted);
-      const patch = {
-        vibe,
-        vibeLoading: false,
-        vibeNote: fresh.length ? '' : (exhausted ? 'No more matching tracks — replaying this vibe.' : prev.vibeNote),
-      };
-      if (!fresh.length) return patch;
-      patch.queue = [...prev.queue, ...fresh];
-      if (playFirst) {
-        patch.track = fresh[0];
-        patch.index = prev.queue.length;
-        patch.status = 'loading';
-        patch.error = null;
-        patch.currentTime = 0;
-        patch.playerVisible = true;
-      }
-      return patch;
-    });
-    if (playFirst && first) {
+    const {
+      queue, index, repeat, shuffle, autoplay, track, history,
+      activeCategory, activePlaylistTracks, activePlaylistTitle, unavailable,
+    } = stateRef.current;
+
+    // Track current in history
+    if (track?.videoId) {
+      const nextHistory = [track.videoId, ...(history || []).filter((id) => id !== track.videoId)].slice(0, 50);
       try {
-        playerRef.current?.loadVideoById?.(first.videoId);
-      } catch (err) {
-        set({ status: 'error', error: { message: err?.message || 'Playback failed.' } });
-      }
+        sessionStorage.setItem(HISTORY_KEY, JSON.stringify(nextHistory));
+      } catch { /* ignore */ }
+      set((prev) => ({ ...prev, history: nextHistory }));
     }
-    return Boolean(first);
-  }, [set]);
 
-  // ---- Load next in queue (used by ENDED) ---------------------------------
-  const advance = useCallback(async (auto) => {
-    const { queue, index, repeat, shuffle, autoVibe, vibe } = stateRef.current;
     if (!queue.length) return;
 
-    const load = (nextIndex) => {
-      const track = queue[nextIndex];
-      set({ track, index: nextIndex, status: 'loading', error: null, currentTime: 0, playerVisible: true });
+    const load = (nextIndex, reason = null) => {
+      const nextTrack = queue[nextIndex];
+      if (!nextTrack) return;
+      set({
+        track: nextTrack,
+        index: nextIndex,
+        status: 'loading',
+        error: null,
+        currentTime: 0,
+        playerVisible: true,
+        autoplayReason: reason,
+      });
       try {
-        playerRef.current?.loadVideoById?.(track.videoId);
+        playerRef.current?.loadVideoById?.(nextTrack.videoId);
       } catch (err) {
         set({ status: 'error', error: { message: err?.message || 'Playback failed.' } });
       }
     };
 
+    // 1. Repeat One
+    if (repeat === 'one' && auto) {
+      load(index);
+      return;
+    }
+
+    // 2. Shuffle within Queue
     if (shuffle && queue.length > 1) {
       let nextIndex;
-      do { nextIndex = Math.floor(Math.random() * queue.length); } while (nextIndex === index);
+      let attempts = 0;
+      do {
+        nextIndex = Math.floor(Math.random() * queue.length);
+        attempts++;
+      } while (nextIndex === index && attempts < 10);
       load(nextIndex);
       return;
     }
 
+    // 3. Next Track in Queue
     if (index < queue.length - 1) {
       load(index + 1);
       return;
     }
 
-    if (auto && autoVibe && vibe && !vibe.exhausted) {
-      // Queue finished — top up the same vibe before falling back to a replay.
-      const result = await requestVibeTracks(vibe);
-      const current = stateRef.current;
-      // The listener may have started another track (or another vibe) while
-      // the request was in flight. Never let a late response override them.
-      if (current.index !== index || current.track?.videoId !== queue[index]?.videoId) return;
-      if (current.vibe?.query !== vibe.query) return;
-      if (result?.fresh?.length && current.autoVibe) {
-        applyVibeResult(result, nextVibeState(vibe, result), { playFirst: true });
-        return;
-      }
-      if (result && current.autoVibe) applyVibeResult(result, nextVibeState(vibe, result));
-    }
-
-    if (repeat === 'all' || auto) {
+    // 4. Repeat All
+    if (repeat === 'all') {
       load(0);
       return;
     }
 
-    set({ status: 'ended' });
-  }, [set, requestVibeTracks, applyVibeResult]);
+    // 5. Intelligent Autoplay recommendation when queue finishes
+    if (auto && autoplay) {
+      const historySet = new Set(stateRef.current.history || []);
+      if (track?.videoId) historySet.add(track.videoId);
 
-  // ---- YT event handlers --------------------------------------------------
+      const nextRec = findNextAutoplayTrack({
+        autoplay: true,
+        category: activeCategory,
+        currentTrack: track,
+        playlistTracks: activePlaylistTracks,
+        playlistTitle: activePlaylistTitle,
+      }, historySet, unavailable);
+
+      if (nextRec?.track) {
+        const nextTrack = nextRec.track;
+        const nextQueue = [...queue, nextTrack];
+        const nextIndex = queue.length;
+        set({
+          queue: nextQueue,
+          index: nextIndex,
+          track: nextTrack,
+          status: 'loading',
+          error: null,
+          currentTime: 0,
+          playerVisible: true,
+          autoplayReason: nextRec.reason,
+        });
+        try {
+          playerRef.current?.loadVideoById?.(nextTrack.videoId);
+        } catch (err) {
+          set({ status: 'error', error: { message: err?.message || 'Playback failed.' } });
+        }
+        return;
+      }
+    }
+
+    // 6. Queue ended cleanly
+    set({ status: 'ended', autoplayReason: 'Queue finished. Autoplay paused.' });
+  }, [set]);
+
+  // ---- YT Event Handlers --------------------------------------------------
   const handleStateChange = useCallback((event) => {
     const code = event.data;
     const player = playerRef.current;
@@ -286,22 +326,6 @@ export function MusicProvider({ children }) {
       try { duration = player?.getDuration?.() || 0; } catch { /* ignore */ }
       set({ status: 'playing', error: null, duration });
       startPolling();
-
-      // Prefetch the next same-vibe page while the last track is still
-      // playing, so the transition is seamless. Only near the end, never
-      // per track: a YouTube search request costs ~100 quota units.
-      const { autoVibe, vibe, queue, index } = stateRef.current;
-      if (autoVibe && vibe && !vibe.exhausted && queue.length && index >= queue.length - 2) {
-        const key = `${vibe.query}|${vibe.variant || 0}|${vibe.pageToken || 'first'}`;
-        if (vibeFetchKeyRef.current !== key) {
-          vibeFetchKeyRef.current = key;
-          requestVibeTracks(vibe).then((result) => {
-            if (!result || !stateRef.current.autoVibe) return;
-            if (stateRef.current.vibe?.query !== vibe.query) return;
-            applyVibeResult(result, nextVibeState(vibe, result));
-          });
-        }
-      }
     } else if (code === 2) { // PAUSED
       set({ status: 'paused' });
       stopPolling();
@@ -320,7 +344,7 @@ export function MusicProvider({ children }) {
     } else if (code === 5) { // CUED
       set({ status: 'ready' });
     }
-  }, [set, startPolling, stopPolling, advance, requestVibeTracks, applyVibeResult]);
+  }, [set, startPolling, stopPolling, advance]);
 
   const handleError = useCallback((event) => {
     const code = event?.data;
@@ -333,14 +357,9 @@ export function MusicProvider({ children }) {
     }));
   }, [set, stopPolling]);
 
-  // ---- Player creation (once per app lifetime) ----------------------------
-  // The IFrame API only attaches the public methods (loadVideoById, playVideo,
-  // …) once the player fires onReady. Resolve only after that point: calling
-  // loadVideoById straight after `new YT.Player()` throws in current browsers.
+  // ---- Player Creation (single instance for app lifetime) -----------------
   const ensurePlayer = useCallback(async () => {
     if (playerReadyRef.current) return playerReadyRef.current;
-    // A previous attempt may have timed out just before the player finished
-    // starting; reuse it if its public methods are now attached.
     if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
       return playerRef.current;
     }
@@ -359,7 +378,7 @@ export function MusicProvider({ children }) {
             const timer = setTimeout(() => {
               if (settled) return;
               settled = true;
-              reject(new Error('The YouTube player took too long to start — check the network connection.'));
+              reject(new Error('The YouTube player took too long to start.'));
             }, 15000);
             const ready = () => {
               if (settled) return;
@@ -374,7 +393,7 @@ export function MusicProvider({ children }) {
                 height: '200',
                 width: '200',
                 playerVars: {
-                  autoplay: 0, // playback only ever starts from an explicit user action
+                  autoplay: 0,
                   controls: 1,
                   rel: 0,
                   modestbranding: 1,
@@ -395,7 +414,6 @@ export function MusicProvider({ children }) {
             }
           });
         } catch (err) {
-          // Allow a later click to retry instead of caching a rejected promise.
           playerRef.current = null;
           playerReadyRef.current = null;
           throw err;
@@ -408,16 +426,14 @@ export function MusicProvider({ children }) {
     return playerReadyRef.current;
   }, [handleStateChange, handleError]);
 
-  // ---- Public actions -----------------------------------------------------
+  // ---- Public Actions -----------------------------------------------------
   const playTrack = useCallback(async (track, options = {}) => {
     if (!track?.videoId) return;
-    const queue = options.queue || stateRef.current.queue || [];
+    const queue = options.queue || stateRef.current.queue || [track];
     let index = options.index;
     if (index == null) index = queue.findIndex((t) => t.videoId === track.videoId);
     if (index == null || index < 0) index = 0;
 
-    // A vibe supplied with the play action starts a fresh autoplay lane.
-    // Without one, keep the lane the user is already listening to.
     const hasVibeOption = Object.prototype.hasOwnProperty.call(options, 'vibe');
     const vibe = hasVibeOption
       ? (options.vibe ? {
@@ -431,17 +447,25 @@ export function MusicProvider({ children }) {
     if (hasVibeOption) vibeFetchKeyRef.current = '';
 
     set({
-      status: 'loading', track, queue, index, vibe,
-      vibeNote: '', vibeLoading: false,
-      error: null, currentTime: 0, playerVisible: true,
+      status: 'loading',
+      track,
+      queue,
+      index,
+      vibe,
+      vibeNote: '',
+      vibeLoading: false,
+      error: null,
+      currentTime: 0,
+      playerVisible: true,
+      autoplayReason: options.autoplayReason || null,
+      activePlaylistTitle: options.playlistTitle || stateRef.current.activePlaylistTitle,
     });
 
     try {
       const player = await ensurePlayer();
-      // The user clicked something — that is the gesture that permits playback
       player.loadVideoById(track.videoId);
     } catch (err) {
-      set({ status: 'error', error: { message: err?.message || 'Couldn’t start the player.' } });
+      set({ status: 'error', error: { message: err?.message || 'Couldn’t start playback.' } });
     }
   }, [ensurePlayer, set]);
 
@@ -451,13 +475,30 @@ export function MusicProvider({ children }) {
     playTrack(tracks[index], { ...options, queue: tracks, index });
   }, [playTrack]);
 
+  const playPlaylist = useCallback((playlist, startIndex = 0, options = {}) => {
+    const tracks = playlist?.tracks || [];
+    if (!tracks.length) return;
+    const idx = Math.max(0, Math.min(startIndex, tracks.length - 1));
+    set({
+      activePlaylistId: playlist.id || playlist.playlistId || null,
+      activePlaylistTitle: playlist.name || playlist.title || 'Playlist',
+      activePlaylistTracks: tracks,
+      activeCategory: playlist.category || stateRef.current.activeCategory,
+    });
+    playTrack(tracks[idx], {
+      ...options,
+      queue: tracks,
+      index: idx,
+      playlistTitle: playlist.name || playlist.title,
+    });
+  }, [playTrack, set]);
+
   const toggle = useCallback(() => {
     const player = playerRef.current;
     if (!player || !stateRef.current.track) return;
     try {
       if (stateRef.current.status === 'playing') player.pauseVideo?.();
       else {
-        // Resuming requires the player to be on screen (YouTube policy).
         set({ playerVisible: true });
         player.playVideo?.();
       }
@@ -470,11 +511,15 @@ export function MusicProvider({ children }) {
 
   const prev = useCallback(() => {
     const player = playerRef.current;
-    const { index, queue } = stateRef.current;
+    const { index, queue, currentTime } = stateRef.current;
+    if (currentTime > 3) {
+      try { player?.seekTo?.(0, true); } catch { /* ignore */ }
+      return;
+    }
     if (index > 0) {
       const track = queue[index - 1];
       set({ track, index: index - 1, status: 'loading', error: null, currentTime: 0 });
-      try { player?.loadVideoById?.(track.videoId); } catch { /* handled by onError */ }
+      try { player?.loadVideoById?.(track.videoId); } catch { /* ignore */ }
     } else {
       try { player?.seekTo?.(0, true); } catch { /* ignore */ }
     }
@@ -485,8 +530,9 @@ export function MusicProvider({ children }) {
     const duration = stateRef.current.duration || player?.getDuration?.() || 0;
     if (!player || !duration) return;
     try {
-      player.seekTo(Math.max(0, Math.min(1, fraction)) * duration, true);
-      set({ currentTime: Math.max(0, Math.min(1, fraction)) * duration });
+      const targetTime = Math.max(0, Math.min(1, fraction)) * duration;
+      player.seekTo(targetTime, true);
+      set({ currentTime: targetTime });
     } catch { /* ignore */ }
   }, [set]);
 
@@ -517,16 +563,25 @@ export function MusicProvider({ children }) {
     set((prev) => ({ shuffle: !prev.shuffle }));
   }, [set]);
 
-  const toggleAutoVibe = useCallback(() => {
+  const toggleAutoplay = useCallback(() => {
     set((prev) => {
-      const autoVibe = !prev.autoVibe;
-      try { localStorage.setItem(AUTO_VIBE_KEY, autoVibe ? '1' : '0'); } catch { /* ignore */ }
-      if (autoVibe) vibeFetchKeyRef.current = '';
-      return { autoVibe, vibeNote: autoVibe ? prev.vibeNote : '' };
+      const nextAutoplay = !prev.autoplay;
+      try { localStorage.setItem(AUTOPLAY_KEY, nextAutoplay ? '1' : '0'); } catch { /* ignore */ }
+      return { ...prev, autoplay: nextAutoplay };
     });
   }, [set]);
 
-  const enqueue = useCallback((track) => {
+  const setAutoplay = useCallback((enabled) => {
+    try { localStorage.setItem(AUTOPLAY_KEY, enabled ? '1' : '0'); } catch { /* ignore */ }
+    set({ autoplay: Boolean(enabled) });
+  }, [set]);
+
+  const setActiveCategory = useCallback((catId) => {
+    set({ activeCategory: catId });
+  }, [set]);
+
+  // Queue actions
+  const addToQueue = useCallback((track) => {
     if (!track?.videoId) return;
     set((prev) => {
       if (prev.queue.some((t) => t.videoId === track.videoId)) return prev;
@@ -535,16 +590,28 @@ export function MusicProvider({ children }) {
       const patch = { queue, index };
       if (!prev.track) {
         patch.track = queue[index];
-        patch.status = 'idle'; // queued, not playing — user must press play
+        patch.status = 'idle';
       }
       return patch;
     });
   }, [set]);
 
-  const removeQueued = useCallback((trackId) => {
+  const playNext = useCallback((track) => {
+    if (!track?.videoId) return;
     set((prev) => {
-      const removedIndex = prev.queue.findIndex((t) => t.id === trackId || t.videoId === trackId);
-      if (removedIndex < 0) return prev;
+      const queue = [...prev.queue];
+      const currentIndex = prev.index < 0 ? 0 : prev.index;
+      queue.splice(currentIndex + 1, 0, track);
+      return { ...prev, queue };
+    });
+  }, [set]);
+
+  const removeQueued = useCallback((target) => {
+    set((prev) => {
+      const removedIndex = typeof target === 'number'
+        ? target
+        : prev.queue.findIndex((t) => t.id === target || t.videoId === target);
+      if (removedIndex < 0 || removedIndex >= prev.queue.length) return prev;
       const queue = prev.queue.filter((_, i) => i !== removedIndex);
       let index = prev.index;
       let track = prev.track;
@@ -562,13 +629,47 @@ export function MusicProvider({ children }) {
     });
   }, [set, stopPolling]);
 
+  const clearQueue = useCallback(() => {
+    set((prev) => ({
+      ...prev,
+      queue: prev.track ? [prev.track] : [],
+      index: prev.track ? 0 : -1,
+    }));
+  }, [set]);
+
+  const reorderQueue = useCallback((newQueue) => {
+    if (!Array.isArray(newQueue)) return;
+    set((prev) => {
+      const currentVid = prev.track?.videoId;
+      const nextIndex = currentVid ? newQueue.findIndex((t) => t.videoId === currentVid) : 0;
+      return {
+        ...prev,
+        queue: newQueue,
+        index: nextIndex >= 0 ? nextIndex : 0,
+      };
+    });
+  }, [set]);
+
+  // HUD / UI state controls
+  const setMusicUiState = useCallback((uiState) => {
+    try { localStorage.setItem(MUSIC_UI_STATE_KEY, uiState); } catch { /* ignore */ }
+    set({ musicUiState: uiState });
+  }, [set]);
+
+  const openExpanded = useCallback(() => setMusicUiState('expanded'), [setMusicUiState]);
+  const minimize = useCallback(() => setMusicUiState('compact'), [setMusicUiState]);
+  const closeMusic = useCallback(() => setMusicUiState('hidden'), [setMusicUiState]);
+  const restoreHud = useCallback(() => setMusicUiState('compact'), [setMusicUiState]);
+
   const stop = useCallback(() => {
     try { playerRef.current?.stopVideo?.(); } catch { /* ignore */ }
     stopPolling();
     vibeFetchKeyRef.current = '';
     set({
-      status: 'idle', track: null, index: -1, currentTime: 0, duration: 0,
-      error: null, playerVisible: false, vibe: null, vibeNote: '', vibeLoading: false,
+      status: 'idle',
+      currentTime: 0,
+      playerVisible: false,
+      autoplayReason: null,
     });
   }, [set, stopPolling]);
 
@@ -581,8 +682,6 @@ export function MusicProvider({ children }) {
 
   const setPlayerVisible = useCallback((visible) => {
     if (!visible) {
-      // YouTube policy: the embedded player must stay visible while it
-      // plays. Hiding the panel always pauses playback first.
       try { playerRef.current?.pauseVideo?.(); } catch { /* ignore */ }
     }
     set({ playerVisible: visible });
@@ -602,7 +701,15 @@ export function MusicProvider({ children }) {
     [set]
   );
 
-  // ---- remember-last-playlist helpers (used by PlaylistContext) -----------
+  const toggleAutoVibe = useCallback(() => {
+    set((prev) => {
+      const autoVibe = !prev.autoVibe;
+      try { localStorage.setItem(AUTO_VIBE_KEY, autoVibe ? '1' : '0'); } catch { /* ignore */ }
+      if (autoVibe) vibeFetchKeyRef.current = '';
+      return { autoVibe, vibeNote: autoVibe ? prev.vibeNote : '' };
+    });
+  }, [set]);
+
   const lastPlaylist = useMemo(() => ({
     get: () => { try { return localStorage.getItem(LAST_PLAYLIST_KEY) || null; } catch { return null; } },
     set: (id) => { try { if (id) localStorage.setItem(LAST_PLAYLIST_KEY, id); else localStorage.removeItem(LAST_PLAYLIST_KEY); } catch { /* ignore */ } },
@@ -617,12 +724,7 @@ export function MusicProvider({ children }) {
     creatingRef.current = false;
   }, [stopPolling]);
 
-  // ---- Context values -----------------------------------------------------
-  // The three contexts are split so that the once-per-second progress poll
-  // only re-renders the (tiny) progress readout instead of every consumer.
-
-  // Derived booleans are computed outside the memo so the memo only depends
-  // on values that actually change.
+  // Derived booleans
   const canGoPrev = state.queue.length > 1 || state.currentTime > 2;
 
   const isVideoPlayable = Boolean(
@@ -646,6 +748,14 @@ export function MusicProvider({ children }) {
     volume: state.volume,
     muted: state.muted,
     unavailable: state.unavailable,
+    musicUiState: state.musicUiState,
+    autoplay: state.autoplay,
+    activeCategory: state.activeCategory,
+    activePlaylistId: state.activePlaylistId,
+    activePlaylistTitle: state.activePlaylistTitle,
+    activePlaylistTracks: state.activePlaylistTracks,
+    history: state.history,
+    autoplayReason: state.autoplayReason,
     vibe: state.vibe,
     autoVibe: state.autoVibe,
     vibeLoading: state.vibeLoading,
@@ -667,6 +777,14 @@ export function MusicProvider({ children }) {
     state.volume,
     state.muted,
     state.unavailable,
+    state.musicUiState,
+    state.autoplay,
+    state.activeCategory,
+    state.activePlaylistId,
+    state.activePlaylistTitle,
+    state.activePlaylistTracks,
+    state.history,
+    state.autoplayReason,
     state.vibe,
     state.autoVibe,
     state.vibeLoading,
@@ -683,17 +801,70 @@ export function MusicProvider({ children }) {
 
   const actionsValue = useMemo(() => ({
     actions: {
-      playTrack, playAll, toggle, next, prev, seekFraction,
-      setVolume, toggleMute, cycleRepeat, toggleShuffle, toggleAutoVibe,
-      enqueue, removeQueued, stop, retry, clearError,
-      setPlayerVisible, setQueue,
+      playTrack,
+      playAll,
+      playPlaylist,
+      toggle,
+      next,
+      prev,
+      seekFraction,
+      setVolume,
+      toggleMute,
+      cycleRepeat,
+      toggleShuffle,
+      toggleAutoplay,
+      setAutoplay,
+      setActiveCategory,
+      addToQueue,
+      playNext,
+      removeQueued,
+      clearQueue,
+      reorderQueue,
+      setMusicUiState,
+      openExpanded,
+      minimize,
+      closeMusic,
+      restoreHud,
+      stop,
+      retry,
+      clearError,
+      setPlayerVisible,
+      setQueue,
+      toggleAutoVibe,
     },
     lastPlaylist,
   }), [
-    playTrack, playAll, toggle, next, prev, seekFraction,
-    setVolume, toggleMute, cycleRepeat, toggleShuffle, toggleAutoVibe,
-    enqueue, removeQueued, stop, retry, clearError,
-    setPlayerVisible, setQueue, lastPlaylist,
+    playTrack,
+    playAll,
+    playPlaylist,
+    toggle,
+    next,
+    prev,
+    seekFraction,
+    setVolume,
+    toggleMute,
+    cycleRepeat,
+    toggleShuffle,
+    toggleAutoplay,
+    setAutoplay,
+    setActiveCategory,
+    addToQueue,
+    playNext,
+    removeQueued,
+    clearQueue,
+    reorderQueue,
+    setMusicUiState,
+    openExpanded,
+    minimize,
+    closeMusic,
+    restoreHud,
+    stop,
+    retry,
+    clearError,
+    setPlayerVisible,
+    setQueue,
+    toggleAutoVibe,
+    lastPlaylist,
   ]);
 
   return (
@@ -703,7 +874,10 @@ export function MusicProvider({ children }) {
           {children}
           {/* Persistent host for the single YouTube player instance.
               The IFrame API replaces this div with the player, so it must never unmount. */}
-          <div className={`yt-host-wrap${state.playerVisible && state.track ? ' visible' : ''}${isImmersive ? ' is-immersive' : ''}${isVideoPlayable ? ' video-active' : ''}`} aria-hidden={!state.playerVisible && !isImmersive}>
+          <div
+            className={`yt-host-wrap${state.playerVisible && state.track ? ' visible' : ''}${isImmersive ? ' is-immersive' : ''}${isVideoPlayable ? ' video-active' : ''}`}
+            aria-hidden={!state.playerVisible && !isImmersive}
+          >
             <div id="atlera-yt-host" />
           </div>
         </MusicPlaybackContext.Provider>
@@ -711,4 +885,3 @@ export function MusicProvider({ children }) {
     </MusicActionsContext.Provider>
   );
 }
-

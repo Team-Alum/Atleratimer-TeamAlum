@@ -10,6 +10,8 @@ import SessionHistoryModal from '../stats/SessionHistoryModal';
 import Watermark from './Watermark';
 import AmbientBackground from '../../ambient/AmbientBackground';
 import ImmersiveBackground from '../../music/ImmersiveBackground';
+import MusicHUD from '../../music/MusicHUD';
+import ExpandedMusicHome from '../../music/ExpandedMusicHome';
 
 export default function AppShell() {
   const { activeView, showHistoryModal, data, theme } = useTimerState();
@@ -69,6 +71,12 @@ export default function AppShell() {
           </>
         )}
       </main>
+
+      {/* State A: Compact Claymorphic Music HUD */}
+      <MusicHUD />
+
+      {/* State B: Expanded Music Discovery Home */}
+      <ExpandedMusicHome />
 
       {/* Modal for full session history log */}
       <SessionHistoryModal

@@ -1,7 +1,8 @@
 import React, { memo, useEffect, useState } from 'react';
 import { useTimerState, useTimerActions } from '../../context/useTimer';
-import { Bell, Sun, Moon, Menu, X } from 'lucide-react';
+import { Bell, Sun, Moon, Menu, X, Music2 } from 'lucide-react';
 import { notificationService } from '../../services/notificationService';
+import { useMusicPlayback, useMusicActions } from '../../music/MusicPlayerContextInstance';
 
 // Local uppercase date, e.g. "TUESDAY, OCTOBER 20".
 function formatToday() {
@@ -15,6 +16,8 @@ function formatToday() {
 function DashboardHeader({ onOpenMobileMenu, mobileMenuOpen = false }) {
   const { theme, activeView, data } = useTimerState();
   const { toggleTheme, setData } = useTimerActions();
+  const music = useMusicPlayback();
+  const { actions: musicActions } = useMusicActions();
   const notificationsSupported = notificationService.isSupported();
 
   // The clock is read outside of render and refreshed once a minute, so the
@@ -88,6 +91,29 @@ function DashboardHeader({ onOpenMobileMenu, mobileMenuOpen = false }) {
       </div>
 
       <div className="header-actions">
+        {/* Focus Music Discovery Button */}
+        <button
+          className={`icon-button ${music.status === 'playing' ? 'active' : ''}`}
+          onClick={() => {
+            if (music.musicUiState === 'expanded') {
+              musicActions.minimize();
+            } else {
+              musicActions.openExpanded();
+            }
+          }}
+          title={
+            music.musicUiState === 'expanded'
+              ? 'Minimize Focus Music'
+              : music.track
+                ? `Focus Music: ${music.track.title} (${music.status})`
+                : 'Open Focus Music Discovery'
+          }
+          aria-label="Toggle Focus Music"
+          aria-expanded={music.musicUiState === 'expanded'}
+        >
+          <Music2 size={18} strokeWidth={2} />
+        </button>
+
         {/* Notification Button */}
         <button
           className={`icon-button ${data.desktopNotifications ? 'active' : ''}`}

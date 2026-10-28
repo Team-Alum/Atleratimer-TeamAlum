@@ -36,7 +36,6 @@ export default function MusicBar() {
   const { playlists, activeId, activePlaylist, actions: playlistActions } = usePlaylists();
 
   const [open, setOpen] = useState(false);
-  const [everOpened, setEverOpened] = useState(false);
   const [playlistsOpen, setPlaylistsOpen] = useState(false); // inline playlist manager
   const [pickerOpen, setPickerOpen] = useState(false);       // compact playlist selector
   const rootRef = useRef(null);
@@ -68,15 +67,8 @@ export default function MusicBar() {
   }, []);
 
   const togglePanel = useCallback(() => {
-    setEverOpened(true);
-    const next = !open;
-    if (!next) {
-      setPickerOpen(false);
-      setPlaylistsOpen(false);
-    }
-    pendingSearchFocusRef.current = next;
-    setOpen(next);
-  }, [open]);
+    actions.openExpanded();
+  }, [actions]);
 
   // Expanding always focuses the search input. On later opens the search
   // section is already mounted, so the callback ref above will not fire
@@ -326,7 +318,7 @@ export default function MusicBar() {
         </div>
 
         <Suspense fallback={<div className="mp-search-placeholder" aria-hidden="true" />}>
-          {everOpened && <SearchSection inputRef={registerSearchInput} />}
+          {open && <SearchSection inputRef={registerSearchInput} />}
         </Suspense>
 
         {/* Compact playlist selector */}

@@ -3,9 +3,13 @@
 // - Guest      -> localStorage (temporary, per-device)
 // The UI never talks to either backend directly — only through PlaylistContext.
 
-import { getSupabase } from '../services/supabaseClient';
+import { getSupabase } from '../services/supabaseClient.js';
 
 const LOCAL_KEY = 'atleratimer_playlists_v1';
+const LIKED_KEY = 'atleratimer_liked_tracks_v1';
+
+let memoryPlaylists = null;
+let memoryLiked = null;
 
 export function sanitizePlaylistName(name) {
   return String(name || '').trim().replace(/\s+/g, ' ').slice(0, 80);
@@ -24,23 +28,29 @@ function newLocalId(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// ---- Guest backend (localStorage) ----------------------------------------
+// ---- Guest backend (localStorage with memory fallback) ------------------
 
 function readLocal() {
   try {
-    const raw = localStorage.getItem(LOCAL_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+    if (typeof localStorage !== 'undefined' && localStorage.getItem) {
+      const raw = localStorage.getItem(LOCAL_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    }
+  } catch { /* use in-memory store */ }
+  return memoryPlaylists || [];
 }
 
 function writeLocal(playlists) {
+  memoryPlaylists = playlists;
   try {
-    localStorage.setItem(LOCAL_KEY, JSON.stringify(playlists));
+    if (typeof localStorage !== 'undefined' && localStorage.setItem) {
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(playlists));
+    }
   } catch {
-    throw new Error('Couldn’t save playlists on this device — local storage may be full or blocked.');
+    if (typeof window !== 'undefined') {
+      throw new Error('Couldn’t save playlists on this device — local storage may be full or blocked.');
+    }
   }
 }
 
@@ -216,6 +226,57 @@ export const playlistStore = {
     playlist.tracks = orderedTrackIds.map((id) => byId.get(id)).filter(Boolean);
     playlist.updatedAt = new Date().toISOString();
     writeLocal(playlists);
+  },
+
+  async importPlaylist(userId, plData, tracks = []) {
+    const name = sanitizePlaylistName(plData?.title || 'Imported Playlist');
+    const created = await this.create(userId, name);
+    for (const track of tracks) {
+      if (track?.videoId) {
+        try {
+          await this.addTrack(userId, created.id, track);
+        } catch { /* ignore individual duplicate or format errors */ }
+      }
+    }
+    return created;
+  },
+};
+
+export const likedStore = {
+  list() {
+    try {
+      if (typeof localStorage !== 'undefined' && localStorage.getItem) {
+        const raw = localStorage.getItem(LIKED_KEY);
+        return raw ? JSON.parse(raw) : [];
+      }
+    } catch { /* ignore */ }
+    return memoryLiked || [];
+  },
+  toggle(track) {
+    if (!track?.videoId) return false;
+    const list = this.list();
+    const idx = list.findIndex((t) => t.videoId === track.videoId);
+    let nextList;
+    let liked = false;
+    if (idx >= 0) {
+      nextList = list.filter((_, i) => i !== idx);
+      liked = false;
+    } else {
+      nextList = [track, ...list];
+      liked = true;
+    }
+    memoryLiked = nextList;
+    try {
+      if (typeof localStorage !== 'undefined' && localStorage.setItem) {
+        localStorage.setItem(LIKED_KEY, JSON.stringify(nextList));
+      }
+    } catch { /* ignore */ }
+    return liked;
+  },
+  isLiked(videoId) {
+    if (!videoId) return false;
+    const list = this.list();
+    return list.some((t) => t.videoId === videoId);
   },
 };
 

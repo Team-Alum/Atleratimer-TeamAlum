@@ -4,7 +4,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PlaylistContext } from './PlaylistContextInstance';
-import { playlistStore, friendlyStoreError, sanitizePlaylistName } from './playlistStore';
+import { playlistStore, likedStore, friendlyStoreError, sanitizePlaylistName } from './playlistStore';
 import { useAuth } from '../context/useAuth';
 import { useTimerState } from '../context/useTimer';
 import { useMusicActions } from './MusicPlayerContextInstance';
@@ -18,17 +18,14 @@ export function PlaylistProvider({ children }) {
   const { actions: musicActions, lastPlaylist } = useMusicActions();
 
   const [playlists, setPlaylists] = useState([]);
+  const [likedTracks, setLikedTracks] = useState(() => likedStore.list());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeId, setActiveId] = useState(null);
   const restoredRef = useRef(false);
-  // Guards against a slow request for a previous account overwriting the
-  // playlists of the account that is signed in now.
   const requestRef = useRef(0);
 
   // ---- Restore last playlist as the queue (never autoplays) ---------------
-  // Runs right after a successful load, so the saved playlist is restored
-  // together with the list it came from.
   const restoreLastPlaylist = useCallback((list) => {
     if (!rememberLastPlaylist || restoredRef.current || !list?.length) return;
     restoredRef.current = true;
@@ -41,14 +38,11 @@ export function PlaylistProvider({ children }) {
   }, [rememberLastPlaylist, lastPlaylist, musicActions]);
 
   // ---- Load (on mount and whenever the account changes) -------------------
-  // The store is asynchronous, so the state updates happen in a promise
-  // callback rather than in the effect body.
   const load = useCallback(() => {
     const token = (requestRef.current += 1);
     return playlistStore
       .list(userId)
       .then((list) => {
-        // A newer request has superseded this one — drop the stale result.
         if (token !== requestRef.current) return;
         setError(null);
         setPlaylists(list);
@@ -104,7 +98,6 @@ export function PlaylistProvider({ children }) {
     }
   }, [persistAndSet, userId, activeId, rememberLastPlaylist, lastPlaylist]);
 
-  // Returns 'added' | 'duplicate', throws on failure
   const addTrackToPlaylist = useCallback(async (playlistId, track) => {
     let outcome = 'added';
     await persistAndSet(async () => {
@@ -122,6 +115,29 @@ export function PlaylistProvider({ children }) {
     await persistAndSet(() => playlistStore.reorder(userId, playlistId, orderedTrackIds));
   }, [persistAndSet, userId]);
 
+  const importPlaylist = useCallback(async (plData, tracks = []) => {
+    let created;
+    await persistAndSet(async () => {
+      created = await playlistStore.importPlaylist(userId, plData, tracks);
+    });
+    if (created?.id) {
+      setActiveId(created.id);
+      if (rememberLastPlaylist) lastPlaylist.set(created.id);
+    }
+    return created;
+  }, [persistAndSet, userId, rememberLastPlaylist, lastPlaylist]);
+
+  const toggleLikeTrack = useCallback((track) => {
+    if (!track?.videoId) return false;
+    const isNowLiked = likedStore.toggle(track);
+    setLikedTracks(likedStore.list());
+    return isNowLiked;
+  }, []);
+
+  const isLiked = useCallback((videoId) => {
+    return likedStore.isLiked(videoId);
+  }, []);
+
   const selectPlaylist = useCallback((id) => {
     setActiveId(id);
     if (rememberLastPlaylist) lastPlaylist.set(id);
@@ -131,7 +147,7 @@ export function PlaylistProvider({ children }) {
     const playlist = playlists.find((p) => p.id === id);
     if (!playlist?.tracks?.length) return;
     selectPlaylist(id);
-    musicActions.playAll(playlist.tracks, 0, { vibe: vibeFromPlaylist(playlist) });
+    musicActions.playPlaylist(playlist, 0);
   }, [playlists, selectPlaylist, musicActions]);
 
   const activePlaylist = useMemo(
@@ -148,6 +164,7 @@ export function PlaylistProvider({ children }) {
 
   const value = useMemo(() => ({
     playlists,
+    likedTracks,
     activePlaylist,
     activeId,
     loading,
@@ -163,11 +180,35 @@ export function PlaylistProvider({ children }) {
       addTrackToPlaylist,
       removeTrackFromPlaylist,
       reorderPlaylist,
+      importPlaylist,
+      toggleLikeTrack,
+      isLiked,
       selectPlaylist,
       playPlaylist,
       reload,
     },
-  }), [playlists, activePlaylist, activeId, loading, error, userId, clearError, createPlaylist, renamePlaylist, deletePlaylist, addTrackToPlaylist, removeTrackFromPlaylist, reorderPlaylist, selectPlaylist, playPlaylist, reload]);
+  }), [
+    playlists,
+    likedTracks,
+    activePlaylist,
+    activeId,
+    loading,
+    error,
+    userId,
+    clearError,
+    createPlaylist,
+    renamePlaylist,
+    deletePlaylist,
+    addTrackToPlaylist,
+    removeTrackFromPlaylist,
+    reorderPlaylist,
+    importPlaylist,
+    toggleLikeTrack,
+    isLiked,
+    selectPlaylist,
+    playPlaylist,
+    reload,
+  ]);
 
   return <PlaylistContext.Provider value={value}>{children}</PlaylistContext.Provider>;
 }
